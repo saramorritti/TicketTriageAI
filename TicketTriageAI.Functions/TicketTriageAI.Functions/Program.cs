@@ -1,3 +1,4 @@
+using Azure.Messaging.ServiceBus;
 using FluentValidation;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,8 +12,13 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
+builder.Services.AddSingleton(_ =>
+    new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBusConnection")));
+builder.Services.AddScoped<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
+builder.Services.AddScoped<ITicketIngestPipeline, TicketIngestPipeline>();
 builder.Services.AddScoped<IValidator<TicketIngestedRequest>, TicketIngestedRequestValidator>();
 builder.Services.AddScoped<ITicketIngestService, TicketIngestService>();
+
 
 // Application Insights isn't enabled by default. See https://aka.ms/AAt8mw4.
 // builder.Services

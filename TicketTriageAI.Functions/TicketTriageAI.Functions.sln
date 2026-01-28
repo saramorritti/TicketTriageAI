@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicketTriageAI.Functions", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicketTriageAI.Core", "TicketTriageAI.Core\TicketTriageAI.Core.csproj", "{56FC2D2D-C26E-4296-B9D0-2E4B19EA19D0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicketTriageAI.Tests", "..\TicketTriageAI.Tests\TicketTriageAI.Tests.csproj", "{D3AB987F-8658-4AE1-AED1-57574DC6B212}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +26,10 @@ Global
 		{56FC2D2D-C26E-4296-B9D0-2E4B19EA19D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{56FC2D2D-C26E-4296-B9D0-2E4B19EA19D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{56FC2D2D-C26E-4296-B9D0-2E4B19EA19D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3AB987F-8658-4AE1-AED1-57574DC6B212}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3AB987F-8658-4AE1-AED1-57574DC6B212}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3AB987F-8658-4AE1-AED1-57574DC6B212}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3AB987F-8658-4AE1-AED1-57574DC6B212}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
