@@ -2,10 +2,9 @@
 using FluentValidation.Results;
 using System.Text.Json;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Core.Services.Interfaces;
 using static System.Net.WebRequestMethods;
 
-namespace TicketTriageAI.Core.Services
+namespace TicketTriageAI.Core.Services.Ingest
 {
     public sealed class TicketIngestService : ITicketIngestService
     {

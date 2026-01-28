@@ -4,8 +4,8 @@ using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Core.Services;
-using TicketTriageAI.Core.Services.Interfaces;
+using TicketTriageAI.Core.Services.Ingest;
+using TicketTriageAI.Core.Services.Messaging;
 using TicketTriageAI.Core.Validators;
 
 var builder = FunctionsApplication.CreateBuilder(args);

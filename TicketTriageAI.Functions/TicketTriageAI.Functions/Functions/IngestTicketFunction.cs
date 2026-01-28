@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Core.Services.Interfaces;
+using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Functions.Common;
 
 namespace TicketTriageAI.Functions.Functions;

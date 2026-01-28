@@ -6,9 +6,9 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Core.Services.Interfaces;
+using TicketTriageAI.Core.Services.Messaging;
 
-namespace TicketTriageAI.Core.Services
+namespace TicketTriageAI.Core.Services.Ingest
 {
     public sealed class TicketIngestPipeline : ITicketIngestPipeline
     {

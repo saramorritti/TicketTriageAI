@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
 
-namespace TicketTriageAI.Core.Services.Interfaces
+namespace TicketTriageAI.Core.Services.Messaging
 {
     public interface ITicketQueuePublisher
     {

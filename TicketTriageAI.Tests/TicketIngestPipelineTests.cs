@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services;
-using TicketTriageAI.Core.Services.Interfaces;
+using TicketTriageAI.Core.Services.Messaging;
 
 namespace TicketTriageAI.Tests
 {
