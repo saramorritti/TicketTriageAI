@@ -12,6 +12,9 @@ namespace TicketTriageAI.Core.Services
 {
     public sealed class TicketIngestPipeline : ITicketIngestPipeline
     {
+        //application service / use case “Ingest Ticket”.
+        //la Function non deve contenere logica; chiami un caso d’uso.
+        //coordinare mapping → publish.
         private readonly ITicketQueuePublisher _publisher;
 
         public TicketIngestPipeline(ITicketQueuePublisher publisher)

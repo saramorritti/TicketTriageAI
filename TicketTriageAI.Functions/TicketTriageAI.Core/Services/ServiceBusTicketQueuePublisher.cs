@@ -12,6 +12,9 @@ namespace TicketTriageAI.Core.Services
 {
     public sealed class ServiceBusTicketQueuePublisher : ITicketQueuePublisher
     {
+        // Adapter infrastrutturale: implementa ITicketQueuePublisher usando Azure Service Bus.
+        // Incapsula serializzazione e mapping verso ServiceBusMessage (MessageId/CorrelationId).
+
         private readonly ServiceBusSender _sender;
 
         public ServiceBusTicketQueuePublisher(ServiceBusClient client)

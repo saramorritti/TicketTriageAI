@@ -3,11 +3,15 @@ using FluentValidation.Results;
 using System.Text.Json;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Interfaces;
+using static System.Net.WebRequestMethods;
 
 namespace TicketTriageAI.Core.Services
 {
     public sealed class TicketIngestService : ITicketIngestService
     {
+        // Servizio applicativo di parsing e validazione dell’input grezzo (JSON) in TicketIngestedRequest.
+        // Mantiene il trigger HTTP “thin”: qui si concentra l’interpretazione del payload + validation.
+        
         private readonly IValidator<TicketIngestedRequest> _validator;
 
         public TicketIngestService(IValidator<TicketIngestedRequest> validator)

@@ -10,6 +10,9 @@ namespace TicketTriageAI.Core.Validators
 {
     public sealed class TicketIngestedRequestValidator : AbstractValidator<TicketIngestedRequest>
     {
+        //Validazione centralizzata del DTO di ingresso (TicketIngestedRequest).
+        //Evita controlli sparsi nei trigger e garantisce requisiti minimi prima di avviare la pipeline.
+
         public TicketIngestedRequestValidator()
         {
             RuleFor(x => x.MessageId).NotEmpty();
