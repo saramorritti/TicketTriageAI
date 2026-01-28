@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -10,20 +12,27 @@ namespace TicketTriageAI.Functions.Functions;
 
 public class IngestTicketFunction
 {
+    private const string QueueName = "tickets-ingest";
+
     private readonly ILogger<IngestTicketFunction> _logger;
     private readonly ITicketIngestService _ingestService;
+    private readonly ITicketIngestPipeline _pipeline;
+
 
     public IngestTicketFunction(
-        ILogger<IngestTicketFunction> logger,
-        ITicketIngestService ingestService)
+    ILogger<IngestTicketFunction> logger,
+    ITicketIngestService ingestService,
+    ITicketIngestPipeline pipeline)
     {
         _logger = logger;
         _ingestService = ingestService;
+        _pipeline = pipeline;
     }
+
 
     [Function("IngestTicket")]
     public async Task<IActionResult> RunAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = Routes.IngestTicketV1)] HttpRequest req)
+    [HttpTrigger(AuthorizationLevel.Function, "post", Route = Routes.IngestTicketV1)] HttpRequest req)
     {
         var correlationId = GetOrCreateCorrelationId(req);
 
@@ -56,13 +65,16 @@ public class IngestTicketFunction
                 return BadRequest(ApiMessages.ValidationFailed, correlationId, errors);
             }
 
+            await _pipeline.ExecuteAsync(request, correlationId);
+
             _logger.LogInformation(
-                "Ticket ingest accepted. MessageId: {MessageId}",
+                "Ticket ingest accepted and enqueued. MessageId: {MessageId}",
                 request.MessageId);
 
             return Accepted(request.MessageId, correlationId);
         }
     }
+
 
     #region helpers
 
