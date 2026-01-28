@@ -12,8 +12,4 @@
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Services\Processing\" />
-  </ItemGroup>
-
 </Project>

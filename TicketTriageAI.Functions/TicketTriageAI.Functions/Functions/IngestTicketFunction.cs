@@ -36,10 +36,7 @@ public class IngestTicketFunction
     {
         var correlationId = GetOrCreateCorrelationId(req);
 
-        using (_logger.BeginScope(new Dictionary<string, object>
-        {
-            ["CorrelationId"] = correlationId
-        }))
+        using (_logger.BeginCorrelationScope(correlationId))
         {
             var body = await new StreamReader(req.Body).ReadToEndAsync();
             if (string.IsNullOrWhiteSpace(body))
