@@ -14,6 +14,11 @@ namespace TicketTriageAI.Functions.Functions
 {
     public sealed class ProcessTicketFunction
     {
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         private readonly ILogger<ProcessTicketFunction> _logger;
         private readonly ITicketProcessingPipeline _pipeline;
 
@@ -27,27 +32,37 @@ namespace TicketTriageAI.Functions.Functions
 
         [Function("ProcessTicket")]
         public async Task RunAsync(
-            [ServiceBusTrigger("tickets-ingest", Connection = "ServiceBusConnection")] string message)
+            [ServiceBusTrigger("tickets-ingest", Connection = "ServiceBusConnection")] string message,
+            CancellationToken ct)
         {
-            var ticket = JsonSerializer.Deserialize<TicketIngested>(message, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            TicketIngested? ticket;
 
-            if (ticket is null)
+            try
             {
-                _logger.LogError("Invalid message payload.");
+                ticket = JsonSerializer.Deserialize<TicketIngested>(message, JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Invalid message payload (JSON). Raw={RawMessage}", message);
                 return;
             }
 
-            using (_logger.BeginCorrelationScope(ticket.CorrelationId))
+            if (ticket is null)
+            {
+                _logger.LogError("Invalid message payload (null deserialization). Raw={RawMessage}", message);
+                return;
+            }
+
+            // audit: conserva sempre il raw
+            ticket.RawMessage = message;
+
+            using (_logger.BeginCorrelationScope(ticket.CorrelationId, ticket.MessageId))
             {
                 _logger.LogInformation(
-                    "Processing ticket. MessageId: {MessageId} Subject: {Subject}",
-                    ticket.MessageId,
+                    "Processing ticket. Subject: {Subject}",
                     ticket.Subject);
 
-                await _pipeline.ExecuteAsync(ticket);
+                await _pipeline.ExecuteAsync(ticket, ct);
 
                 _logger.LogInformation("Processed OK.");
             }

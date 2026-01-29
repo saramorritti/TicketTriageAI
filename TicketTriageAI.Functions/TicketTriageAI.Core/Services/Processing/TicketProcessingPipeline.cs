@@ -5,21 +5,29 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
+using TicketTriageAI.Core.Services.Factories;
 
 namespace TicketTriageAI.Core.Services.Processing
 {
     public sealed class TicketProcessingPipeline : ITicketProcessingPipeline
     {
-        // Pipeline applicativa che gestisce il processing di un ticket già ingestato.
-        // Orquestra la classificazione e applica le decisioni di business (es. human review).
+        // Coordina il flusso di elaborazione del ticket: classificazione + persistenza
+        // Traduce il ticket in ingresso in un documento pronto per Cosmos DB
+
         private readonly ITicketClassifier _classifier;
+        private readonly ITicketRepository _repository;
+        private readonly ITicketDocumentFactory _docFactory;
         private readonly ILogger<TicketProcessingPipeline> _logger;
 
         public TicketProcessingPipeline(
             ITicketClassifier classifier,
+            ITicketRepository repository,
+            ITicketDocumentFactory docFactory,
             ILogger<TicketProcessingPipeline> logger)
         {
             _classifier = classifier;
+            _repository = repository;
+            _docFactory = docFactory;
             _logger = logger;
         }
 
@@ -31,7 +39,16 @@ namespace TicketTriageAI.Core.Services.Processing
                 "Triage result. Category={Category} Severity={Severity} Confidence={Confidence} NeedsHumanReview={NeedsHumanReview}",
                 result.Category, result.Severity, result.Confidence, result.NeedsHumanReview);
 
-            // MVP: qui dopo aggiungeremo persistenza/azioni (DB, notifiche, ecc.)
+            // metadata auditabile (per ora hardcoded, poi lo renderemo parte del classifier)
+            var meta = new ClassifierMetadata(
+                Name: _classifier.GetType().Name,
+                Version: "1",
+                Model: null
+            );
+
+            var doc = _docFactory.Create(ticket, result, meta);
+
+            await _repository.UpsertAsync(doc, ct);
         }
     }
 }

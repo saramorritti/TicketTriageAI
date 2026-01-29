@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
+using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Messaging;
 
 namespace TicketTriageAI.Core.Services.Ingest
@@ -15,31 +16,20 @@ namespace TicketTriageAI.Core.Services.Ingest
         //application service / use case “Ingest Ticket”.
         //la Function non deve contenere logica; chiami un caso d’uso.
         //coordinare mapping → publish.
-        private readonly ITicketQueuePublisher _publisher;
 
-        public TicketIngestPipeline(ITicketQueuePublisher publisher)
+        private readonly ITicketQueuePublisher _publisher;
+        private readonly ITicketIngestedFactory _factory;
+
+        public TicketIngestPipeline(ITicketQueuePublisher publisher, ITicketIngestedFactory factory)
         {
             _publisher = publisher;
+            _factory = factory;
         }
 
-        public Task ExecuteAsync(
-            TicketIngestedRequest request,
-            string correlationId,
-            CancellationToken ct = default)
+        public Task ExecuteAsync(TicketIngestedRequest request, string correlationId, CancellationToken ct = default)
         {
-            var ticketEvent = new TicketIngested
-            {
-                MessageId = request.MessageId,
-                CorrelationId = correlationId,
-                From = request.From,
-                Subject = request.Subject,
-                Body = request.Body,
-                ReceivedAt = request.ReceivedAt,
-                Source = request.Source
-            };
-
+            var ticketEvent = _factory.Create(request, correlationId);
             return _publisher.PublishAsync(ticketEvent, ct);
         }
     }
-
 }

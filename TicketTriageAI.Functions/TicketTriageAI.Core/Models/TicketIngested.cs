@@ -18,5 +18,7 @@ namespace TicketTriageAI.Core.Models
         public string Body { get; init; } = default!;
         public DateTime ReceivedAt { get; init; }
         public string Source { get; init; } = "email";
+        public string RawMessage { get; set; } = string.Empty;
+
     }
 }
