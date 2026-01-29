@@ -4,12 +4,17 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenAI;
+using OpenAI.Chat;
+using System.ClientModel;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Core.Services.Messaging;
 using TicketTriageAI.Core.Services.Processing;
+using TicketTriageAI.Core.Services.Processing.AI;
 using TicketTriageAI.Core.Validators;
+
 
 
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -20,6 +25,28 @@ builder.Services.AddSingleton(_ =>
     new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBusConnection")));
 builder.Services.AddSingleton(_ =>
     new CosmosClient(Environment.GetEnvironmentVariable("CosmosDbConnection")));
+
+builder.Services.AddSingleton<ChatClient>(_ =>
+{
+    var endpoint = Environment.GetEnvironmentVariable("AzureOpenAIEndpoint");
+    var key = Environment.GetEnvironmentVariable("AzureOpenAIKey");
+    var deployment = Environment.GetEnvironmentVariable("AzureOpenAIDeployment");
+
+    if (string.IsNullOrWhiteSpace(endpoint))
+        throw new InvalidOperationException("Missing AzureOpenAIEndpoint in environment/local.settings.json.");
+    if (string.IsNullOrWhiteSpace(key))
+        throw new InvalidOperationException("Missing AzureOpenAIKey in environment/local.settings.json.");
+    if (string.IsNullOrWhiteSpace(deployment))
+        throw new InvalidOperationException("Missing AzureOpenAIDeployment in environment/local.settings.json.");
+
+    // IMPORTANT: per Azure OpenAI con SDK OpenAI, l'endpoint deve puntare a /openai/v1/
+    var baseUri = new Uri($"{endpoint.TrimEnd('/')}/openai/v1/");
+
+    return new ChatClient(
+        model: deployment,
+        credential: new ApiKeyCredential(key),
+        options: new OpenAIClientOptions { Endpoint = baseUri });
+});
 
 
 builder.Services.AddSingleton<ITicketIngestedFactory, TicketIngestedFactory>();
@@ -33,7 +60,9 @@ builder.Services.AddScoped<ITicketIngestPipeline, TicketIngestPipeline>();
 builder.Services.AddScoped<ITicketProcessingPipeline, TicketProcessingPipeline>();
 
 builder.Services.AddScoped<ITicketIngestService, TicketIngestService>();
-builder.Services.AddScoped<ITicketClassifier, FakeTicketClassifier>();
+//builder.Services.AddScoped<ITicketClassifier, FakeTicketClassifier>();
+builder.Services.AddScoped<ITicketClassifier, AzureOpenAITicketClassifier>();
+
 
 
 
