@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Core.Services.Interfaces;
+using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Functions.Common;
 
 namespace TicketTriageAI.Functions.Functions;
@@ -36,10 +36,7 @@ public class IngestTicketFunction
     {
         var correlationId = GetOrCreateCorrelationId(req);
 
-        using (_logger.BeginScope(new Dictionary<string, object>
-        {
-            ["CorrelationId"] = correlationId
-        }))
+        using (_logger.BeginCorrelationScope(correlationId))
         {
             var body = await new StreamReader(req.Body).ReadToEndAsync();
             if (string.IsNullOrWhiteSpace(body))

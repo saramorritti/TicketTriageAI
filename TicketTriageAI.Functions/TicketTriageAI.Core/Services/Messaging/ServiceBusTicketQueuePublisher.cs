@@ -6,12 +6,14 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Core.Services.Interfaces;
 
-namespace TicketTriageAI.Core.Services
+namespace TicketTriageAI.Core.Services.Messaging
 {
     public sealed class ServiceBusTicketQueuePublisher : ITicketQueuePublisher
     {
+        // Adapter infrastrutturale: implementa ITicketQueuePublisher usando Azure Service Bus.
+        // Incapsula serializzazione e mapping verso ServiceBusMessage (MessageId/CorrelationId).
+
         private readonly ServiceBusSender _sender;
 
         public ServiceBusTicketQueuePublisher(ServiceBusClient client)

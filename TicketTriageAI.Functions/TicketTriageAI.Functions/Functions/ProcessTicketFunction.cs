@@ -7,20 +7,26 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
+using TicketTriageAI.Core.Services.Processing;
+using TicketTriageAI.Functions.Common;
 
 namespace TicketTriageAI.Functions.Functions
 {
     public sealed class ProcessTicketFunction
     {
         private readonly ILogger<ProcessTicketFunction> _logger;
+        private readonly ITicketProcessingPipeline _pipeline;
 
-        public ProcessTicketFunction(ILogger<ProcessTicketFunction> logger)
+        public ProcessTicketFunction(
+            ILogger<ProcessTicketFunction> logger,
+            ITicketProcessingPipeline pipeline)
         {
             _logger = logger;
+            _pipeline = pipeline;
         }
 
         [Function("ProcessTicket")]
-        public Task RunAsync(
+        public async Task RunAsync(
             [ServiceBusTrigger("tickets-ingest", Connection = "ServiceBusConnection")] string message)
         {
             var ticket = JsonSerializer.Deserialize<TicketIngested>(message, new JsonSerializerOptions
@@ -31,24 +37,20 @@ namespace TicketTriageAI.Functions.Functions
             if (ticket is null)
             {
                 _logger.LogError("Invalid message payload.");
-                return Task.CompletedTask;
+                return;
             }
 
-            using (_logger.BeginScope(new Dictionary<string, object>
-            {
-                ["CorrelationId"] = ticket.CorrelationId
-            }))
+            using (_logger.BeginCorrelationScope(ticket.CorrelationId))
             {
                 _logger.LogInformation(
                     "Processing ticket. MessageId: {MessageId} Subject: {Subject}",
                     ticket.MessageId,
                     ticket.Subject);
 
-                // MVP: per ora solo log. Dopo aggiungiamo AI + persistenza.
+                await _pipeline.ExecuteAsync(ticket);
+
                 _logger.LogInformation("Processed OK.");
             }
-
-            return Task.CompletedTask;
         }
     }
 }
