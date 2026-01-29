@@ -16,11 +16,25 @@ namespace TicketTriageAI.Functions.Common
             public void Dispose() { }
         }
 
-        public static IDisposable BeginCorrelationScope(this ILogger logger, string correlationId)
+        public static IDisposable BeginCorrelationScope(
+            this ILogger logger,
+            string correlationId)
         {
             return logger.BeginScope(new Dictionary<string, object>
             {
                 ["CorrelationId"] = correlationId
+            }) ?? NullScope.Instance;
+        }
+
+        public static IDisposable BeginCorrelationScope(
+            this ILogger logger,
+            string correlationId,
+            string messageId)
+        {
+            return logger.BeginScope(new Dictionary<string, object>
+            {
+                ["CorrelationId"] = correlationId,
+                ["MessageId"] = messageId
             }) ?? NullScope.Instance;
         }
     }

@@ -11,13 +11,15 @@ using TicketTriageAI.Core.Services.Processing;
 namespace TicketTriageAI.Tests
 {
 
+
     public sealed class TicketProcessingPipelineTests
     {
         [Fact]
-        public async Task ExecuteAsync_CallsClassifier_Once()
+        public async Task ExecuteAsync_CallsClassifier_Once_And_UpsertsDocument()
         {
             // Arrange
             var classifier = new Mock<ITicketClassifier>(MockBehavior.Strict);
+            var repository = new Mock<ITicketRepository>(MockBehavior.Strict);
 
             var expected = new TicketTriageResult
             {
@@ -28,11 +30,15 @@ namespace TicketTriageAI.Tests
             };
 
             classifier
-                .Setup(c => c.ClassifyAsync(It.IsAny<TicketIngested>(), default))
+                .Setup(c => c.ClassifyAsync(It.IsAny<TicketIngested>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expected);
 
+            repository
+                .Setup(r => r.UpsertAsync(It.IsAny<TicketDocument>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
             var logger = NullLogger<TicketProcessingPipeline>.Instance;
-            var pipeline = new TicketProcessingPipeline(classifier.Object, logger);
+            var pipeline = new TicketProcessingPipeline(classifier.Object, repository.Object, logger);
 
             var ticket = new TicketIngested
             {
@@ -49,11 +55,23 @@ namespace TicketTriageAI.Tests
             await pipeline.ExecuteAsync(ticket);
 
             // Assert
-            classifier.Verify(c => c.ClassifyAsync(It.Is<TicketIngested>(t =>
-                t.MessageId == "msg-001" &&
-                t.CorrelationId == "corr-123" &&
-                t.Subject.Contains("URGENTE")
-            ), default), Times.Once);
+            classifier.Verify(c => c.ClassifyAsync(
+                It.Is<TicketIngested>(t =>
+                    t.MessageId == "msg-001" &&
+                    t.CorrelationId == "corr-123" &&
+                    t.Subject.Contains("URGENTE")),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            repository.Verify(r => r.UpsertAsync(
+                It.Is<TicketDocument>(d =>
+                    d.Id == "msg-001" &&
+                    d.MessageId == "msg-001" &&
+                    d.Category == "support" &&
+                    d.Severity == "P1" &&
+                    d.NeedsHumanReview == false),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
         }
     }
 }
