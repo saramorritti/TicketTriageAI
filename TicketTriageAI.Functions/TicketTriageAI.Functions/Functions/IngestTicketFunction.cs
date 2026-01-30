@@ -13,8 +13,6 @@ namespace TicketTriageAI.Functions.Functions;
 
 public class IngestTicketFunction
 {
-    private const string QueueName = "tickets-ingest";
-
     private readonly ILogger<IngestTicketFunction> _logger;
     private readonly ITicketIngestService _ingestService;
     private readonly ITicketIngestPipeline _pipeline;
@@ -66,17 +64,6 @@ public class IngestTicketFunction
             }
 
             await _pipeline.ExecuteAsync(request, correlationId);
-
-            await _statusRepo.PatchReceivedAsync(new TicketIngested
-            {
-                MessageId = request.MessageId,
-                CorrelationId = correlationId,
-                From = request.From,
-                Subject = request.Subject,
-                Body = request.Body,
-                ReceivedAt = request.ReceivedAt,
-                Source = request.Source
-            });
 
             _logger.LogInformation(
                 "Ticket ingest accepted and enqueued. MessageId: {MessageId}",

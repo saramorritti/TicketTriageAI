@@ -6,9 +6,10 @@ using System.Text;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services;
+using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Core.Services.Messaging;
-using TicketTriageAI.Core.Services.Factories;
+using TicketTriageAI.Core.Services.Processing;
 
 
 namespace TicketTriageAI.Tests
@@ -21,6 +22,11 @@ namespace TicketTriageAI.Tests
             // Arrange
             var publisher = new Mock<ITicketQueuePublisher>(MockBehavior.Strict);
             var factory = new Mock<ITicketIngestedFactory>();
+            var statusRepo = new Mock<ITicketStatusRepository>(MockBehavior.Strict);
+
+            statusRepo
+                .Setup(r => r.PatchReceivedAsync(It.IsAny<TicketIngested>(), default))
+                .Returns(Task.CompletedTask);
 
             factory
             .Setup(f => f.Create(
@@ -51,8 +57,10 @@ namespace TicketTriageAI.Tests
                 .Returns(Task.CompletedTask);
 
             var pipeline = new TicketIngestPipeline(
-                publisher.Object,
-                factory.Object);
+            publisher.Object,
+            factory.Object,
+            statusRepo.Object);
+
 
             var req = new TicketIngestedRequest
             {
@@ -71,6 +79,7 @@ namespace TicketTriageAI.Tests
 
             // Assert
             publisher.Verify(p => p.PublishAsync(It.IsAny<TicketIngested>(), default), Times.Once);
+            statusRepo.Verify(r => r.PatchReceivedAsync(It.IsAny<TicketIngested>(), default), Times.Once);
 
             Assert.NotNull(published);
             Assert.Equal("msg-001", published!.MessageId);

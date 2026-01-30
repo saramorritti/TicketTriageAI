@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Messaging;
+using TicketTriageAI.Core.Services.Processing;
 
 namespace TicketTriageAI.Core.Services.Ingest
 {
@@ -19,17 +20,23 @@ namespace TicketTriageAI.Core.Services.Ingest
 
         private readonly ITicketQueuePublisher _publisher;
         private readonly ITicketIngestedFactory _factory;
+        private readonly ITicketStatusRepository _statusRepository;
 
-        public TicketIngestPipeline(ITicketQueuePublisher publisher, ITicketIngestedFactory factory)
+        public TicketIngestPipeline(ITicketQueuePublisher publisher, ITicketIngestedFactory factory, ITicketStatusRepository statusRepository)
         {
             _publisher = publisher;
             _factory = factory;
+            _statusRepository = statusRepository;
         }
 
-        public Task ExecuteAsync(TicketIngestedRequest request, string correlationId, CancellationToken ct = default)
+
+        public async Task ExecuteAsync(TicketIngestedRequest request, string correlationId, CancellationToken ct = default)
         {
             var ticketEvent = _factory.Create(request, correlationId);
-            return _publisher.PublishAsync(ticketEvent, ct);
+
+            await _statusRepository.PatchReceivedAsync(ticketEvent, ct);
+            await _publisher.PublishAsync(ticketEvent, ct);
+
         }
     }
 }
