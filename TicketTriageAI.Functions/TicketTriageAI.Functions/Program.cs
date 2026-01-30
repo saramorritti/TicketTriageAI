@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using OpenAI;
 using OpenAI.Chat;
 using System.ClientModel;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Ingest;
@@ -20,6 +21,17 @@ using TicketTriageAI.Core.Validators;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
+
+builder.Services
+    .AddOptions<ServiceBusOptions>()
+    .Bind(builder.Configuration.GetSection("ServiceBus"))
+    .ValidateOnStart();
+
+builder.Services
+    .AddOptions<CosmosOptions>()
+    .Bind(builder.Configuration.GetSection("Cosmos"))
+    .ValidateOnStart();
+
 
 builder.Services.AddSingleton(_ =>
     new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBusConnection")));

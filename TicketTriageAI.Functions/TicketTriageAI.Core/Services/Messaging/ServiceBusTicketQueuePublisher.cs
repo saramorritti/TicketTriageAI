@@ -1,10 +1,12 @@
 ﻿using Azure.Messaging.ServiceBus;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 
 namespace TicketTriageAI.Core.Services.Messaging
@@ -16,9 +18,11 @@ namespace TicketTriageAI.Core.Services.Messaging
 
         private readonly ServiceBusSender _sender;
 
-        public ServiceBusTicketQueuePublisher(ServiceBusClient client)
+        public ServiceBusTicketQueuePublisher(
+            ServiceBusClient client,
+            IOptions<ServiceBusOptions> options)
         {
-            _sender = client.CreateSender("tickets-ingest");
+            _sender = client.CreateSender(options.Value.QueueName);
         }
 
         public Task PublishAsync(TicketIngested ticket, CancellationToken ct = default)
