@@ -38,6 +38,13 @@ builder.Services.AddSingleton(_ =>
 builder.Services.AddSingleton(_ =>
     new CosmosClient(Environment.GetEnvironmentVariable("CosmosDbConnection")));
 
+builder.Services.AddSingleton(sp =>
+{
+    var client = sp.GetRequiredService<ServiceBusClient>();
+    var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ServiceBusOptions>>().Value;
+    return client.CreateSender(opt.QueueName);
+});
+
 builder.Services.AddSingleton<ChatClient>(_ =>
 {
     var endpoint = Environment.GetEnvironmentVariable("AzureOpenAIEndpoint");
@@ -64,7 +71,7 @@ builder.Services.AddSingleton<ChatClient>(_ =>
 builder.Services.AddSingleton<ITicketIngestedFactory, TicketIngestedFactory>();
 builder.Services.AddSingleton<ITicketDocumentFactory, TicketDocumentFactory>();
 
-builder.Services.AddScoped<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
+builder.Services.AddSingleton<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
 builder.Services.AddScoped<ITicketRepository, CosmosTicketRepository>();
 builder.Services.AddScoped<ITicketStatusRepository, CosmosTicketStatusRepository>();
 builder.Services.AddScoped<IValidator<TicketIngestedRequest>, TicketIngestedRequestValidator>();

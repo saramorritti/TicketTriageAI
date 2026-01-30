@@ -11,19 +11,18 @@ using TicketTriageAI.Core.Models;
 
 namespace TicketTriageAI.Core.Services.Messaging
 {
-    public sealed class ServiceBusTicketQueuePublisher : ITicketQueuePublisher
+    public sealed class ServiceBusTicketQueuePublisher : ITicketQueuePublisher, IAsyncDisposable
     {
         // Adapter infrastrutturale: implementa ITicketQueuePublisher usando Azure Service Bus.
         // Incapsula serializzazione e mapping verso ServiceBusMessage (MessageId/CorrelationId).
 
         private readonly ServiceBusSender _sender;
 
-        public ServiceBusTicketQueuePublisher(
-            ServiceBusClient client,
-            IOptions<ServiceBusOptions> options)
+        public ServiceBusTicketQueuePublisher(ServiceBusSender sender)
         {
-            _sender = client.CreateSender(options.Value.QueueName);
+            _sender = sender;
         }
+
 
         public Task PublishAsync(TicketIngested ticket, CancellationToken ct = default)
         {
@@ -38,6 +37,8 @@ namespace TicketTriageAI.Core.Services.Messaging
 
             return _sender.SendMessageAsync(message, ct);
         }
+        public ValueTask DisposeAsync() => _sender.DisposeAsync();
+
     }
 
 }
