@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Processing;
+using TicketTriageAI.Core.Services.Factories;
+
 
 namespace TicketTriageAI.Tests
 {
@@ -20,6 +22,35 @@ namespace TicketTriageAI.Tests
             // Arrange
             var classifier = new Mock<ITicketClassifier>(MockBehavior.Strict);
             var repository = new Mock<ITicketRepository>(MockBehavior.Strict);
+            var docFactory = new Mock<ITicketDocumentFactory>();
+
+            docFactory
+            .Setup(f => f.Create(
+                It.IsAny<TicketIngested>(),
+                It.IsAny<TicketTriageResult>(),
+                It.IsAny<ClassifierMetadata>()))
+            .Returns((TicketIngested t, TicketTriageResult r, ClassifierMetadata m) =>
+                new TicketDocument
+                {
+                    Id = t.MessageId,
+                    MessageId = t.MessageId,
+                    CorrelationId = t.CorrelationId,
+                    From = t.From,
+                    Subject = t.Subject,
+                    Body = t.Body,
+                    ReceivedAt = t.ReceivedAt,
+                    Source = t.Source,
+
+                    Category = r.Category,
+                    Severity = r.Severity,
+                    Confidence = r.Confidence,
+                    NeedsHumanReview = r.NeedsHumanReview,
+
+                    Status = TicketStatus.Processed
+                });
+
+
+
 
             var expected = new TicketTriageResult
             {
@@ -38,7 +69,11 @@ namespace TicketTriageAI.Tests
                 .Returns(Task.CompletedTask);
 
             var logger = NullLogger<TicketProcessingPipeline>.Instance;
-            var pipeline = new TicketProcessingPipeline(classifier.Object, repository.Object, logger);
+            var pipeline = new TicketProcessingPipeline(
+                classifier.Object,
+                repository.Object,
+                docFactory.Object,
+                logger);
 
             var ticket = new TicketIngested
             {

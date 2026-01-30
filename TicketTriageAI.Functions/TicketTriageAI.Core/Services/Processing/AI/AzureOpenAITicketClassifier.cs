@@ -34,6 +34,7 @@ namespace TicketTriageAI.Core.Services.Processing.AI
             TicketIngested ticket,
             CancellationToken cancellationToken = default)
         {
+
             if (ticket is null) throw new ArgumentNullException(nameof(ticket));
 
             var systemPrompt =

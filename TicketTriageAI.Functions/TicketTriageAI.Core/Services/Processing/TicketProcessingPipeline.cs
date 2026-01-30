@@ -48,7 +48,17 @@ namespace TicketTriageAI.Core.Services.Processing
 
             var doc = _docFactory.Create(ticket, result, meta);
 
+            // STATUS (nuovo)
+            doc.Status = result.NeedsHumanReview
+                ? TicketStatus.NeedsReview
+                : TicketStatus.Processed;
+
+            doc.StatusReason = result.NeedsHumanReview
+                ? (result.Confidence < 0.7 ? "LowConfidence" : "ModelFlagged")
+                : null;
+
             await _repository.UpsertAsync(doc, ct);
+
         }
     }
 }
