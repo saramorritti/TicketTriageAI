@@ -65,7 +65,7 @@ namespace TicketTriageAI.Functions.Functions
             {
                 _logger.LogWarning("Message landed in DLQ. Marking as Failed. MessageId={MessageId}", ticket.MessageId);
 
-                var failedDoc = _docFactory.CreateFailedFromDlq(ticket, "DeadLetter");
+                var failedDoc = _docFactory.CreateFailedFromDlq(ticket, TicketStatusReason.DeadLetter);
                 await _repository.UpsertAsync(failedDoc, ct);
 
                 _logger.LogWarning("DLQ message marked as Failed in Cosmos. MessageId={MessageId}", ticket.MessageId);

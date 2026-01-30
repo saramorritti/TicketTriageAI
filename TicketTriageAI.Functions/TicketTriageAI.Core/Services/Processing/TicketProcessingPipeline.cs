@@ -18,47 +18,68 @@ namespace TicketTriageAI.Core.Services.Processing
         private readonly ITicketRepository _repository;
         private readonly ITicketDocumentFactory _docFactory;
         private readonly ILogger<TicketProcessingPipeline> _logger;
+        private readonly ITicketStatusRepository _statusRepo;
+
 
         public TicketProcessingPipeline(
-            ITicketClassifier classifier,
-            ITicketRepository repository,
-            ITicketDocumentFactory docFactory,
-            ILogger<TicketProcessingPipeline> logger)
+        ITicketClassifier classifier,
+        ITicketRepository repository,
+        ITicketDocumentFactory docFactory,
+        ITicketStatusRepository statusRepo,
+        ILogger<TicketProcessingPipeline> logger)
         {
             _classifier = classifier;
             _repository = repository;
             _docFactory = docFactory;
+            _statusRepo = statusRepo;
             _logger = logger;
         }
 
+
         public async Task ExecuteAsync(TicketIngested ticket, CancellationToken ct = default)
         {
-            var result = await _classifier.ClassifyAsync(ticket, ct);
+            try
+            {
+                await _statusRepo.PatchProcessingAsync(ticket.MessageId, ct);
 
-            _logger.LogInformation(
-                "Triage result. Category={Category} Severity={Severity} Confidence={Confidence} NeedsHumanReview={NeedsHumanReview}",
-                result.Category, result.Severity, result.Confidence, result.NeedsHumanReview);
+                var result = await _classifier.ClassifyAsync(ticket, ct);
 
-            // metadata auditabile (per ora hardcoded, poi lo renderemo parte del classifier)
-            var meta = new ClassifierMetadata(
-                Name: _classifier.GetType().Name,
-                Version: "1",
-                Model: null
-            );
+                _logger.LogInformation(
+                    "Triage result. Category={Category} Severity={Severity} Confidence={Confidence} NeedsHumanReview={NeedsHumanReview}",
+                    result.Category, result.Severity, result.Confidence, result.NeedsHumanReview);
 
-            var doc = _docFactory.Create(ticket, result, meta);
+                var meta = new ClassifierMetadata(
+                    Name: _classifier.GetType().Name,
+                    Version: "1",
+                    Model: null
+                );
 
-            // STATUS (nuovo)
-            doc.Status = result.NeedsHumanReview
-                ? TicketStatus.NeedsReview
-                : TicketStatus.Processed;
+                var doc = _docFactory.Create(ticket, result, meta);
 
-            doc.StatusReason = result.NeedsHumanReview
-                ? (result.Confidence < 0.7 ? "LowConfidence" : "ModelFlagged")
-                : null;
+                doc.Status = result.NeedsHumanReview
+                    ? TicketStatus.NeedsReview
+                    : TicketStatus.Processed;
 
-            await _repository.UpsertAsync(doc, ct);
+                doc.StatusReason = result.NeedsHumanReview
+                    ? (result.Confidence < 0.7 ? TicketStatusReason.LowConfidence : TicketStatusReason.ModelFlagged)
+                    : null;
 
+                await _repository.UpsertAsync(doc, ct);
+
+                if (doc.Status == TicketStatus.NeedsReview)
+                    await _statusRepo.PatchNeedsReviewAsync(ticket.MessageId, doc.StatusReason!, ct);
+                else
+                    await _statusRepo.PatchProcessedAsync(ticket.MessageId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Processing failed. MessageId={MessageId}", ticket.MessageId);
+
+                await _statusRepo.PatchFailedAsync(ticket.MessageId, TicketStatusReason.Exception, ct);
+
+                throw;
+            }
         }
+
     }
 }

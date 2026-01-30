@@ -62,5 +62,40 @@ namespace TicketTriageAI.Core.Services.Processing
                     cancellationToken: ct);
             }
         }
+        public Task PatchProcessingAsync(string messageId, CancellationToken ct = default)
+    => PatchStatusAsync(messageId, TicketStatus.Processing, reason: null, ct);
+
+        public Task PatchProcessedAsync(string messageId, CancellationToken ct = default)
+            => PatchStatusAsync(messageId, TicketStatus.Processed, reason: null, ct);
+
+        public Task PatchNeedsReviewAsync(string messageId, string reason, CancellationToken ct = default)
+            => PatchStatusAsync(messageId, TicketStatus.NeedsReview, reason, ct);
+
+        public Task PatchFailedAsync(string messageId, string reason, CancellationToken ct = default)
+            => PatchStatusAsync(messageId, TicketStatus.Failed, reason, ct);
+
+        private async Task PatchStatusAsync(
+    string messageId,
+    TicketStatus status,
+    string? reason,
+    CancellationToken ct)
+        {
+            var ops = new List<PatchOperation>
+    {
+        PatchOperation.Set("/status", (int)status)
+    };
+
+            if (string.IsNullOrWhiteSpace(reason))
+                ops.Add(PatchOperation.Remove("/statusReason"));
+            else
+                ops.Add(PatchOperation.Set("/statusReason", reason));
+
+            await _container.PatchItemAsync<dynamic>(
+                id: messageId,
+                partitionKey: new PartitionKey(messageId),
+                patchOperations: ops,
+                cancellationToken: ct);
+        }
+
     }
 }
