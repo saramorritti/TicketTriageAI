@@ -7,20 +7,25 @@ using System.Text;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
+using TicketTriageAI.Core.Services.Factories;
 
 namespace TicketTriageAI.Core.Services.Processing
 {
     public sealed class CosmosTicketStatusRepository : ITicketStatusRepository
     {
         private readonly Container _container;
+        private readonly ITicketDocumentFactory _docFactory;
 
         public CosmosTicketStatusRepository(
         CosmosClient client,
-        IOptions<CosmosOptions> options)
+        IOptions<CosmosOptions> options,
+        ITicketDocumentFactory docFactory)
         {
             var opt = options.Value;
             _container = client.GetContainer(opt.DatabaseName, opt.ContainerName);
+            _docFactory = docFactory;
         }
+
 
         public async Task PatchReceivedAsync(TicketIngested ticket, CancellationToken ct = default)
         {
@@ -49,20 +54,7 @@ namespace TicketTriageAI.Core.Services.Processing
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                // Primo inserimento: crea un doc base Received
-                var doc = new
-                {
-                    id = ticket.MessageId,
-                    messageId = ticket.MessageId,
-                    correlationId = ticket.CorrelationId,
-                    from = ticket.From,
-                    subject = ticket.Subject,
-                    body = ticket.Body,
-                    receivedAt = ticket.ReceivedAt,
-                    source = ticket.Source,
-                    status = (int)TicketStatus.Received,
-                    statusReason = (string?)null
-                };
+                var doc = _docFactory.CreateReceived(ticket);
 
                 await _container.CreateItemAsync(
                     item: doc,
