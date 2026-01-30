@@ -22,26 +22,53 @@ namespace TicketTriageAI.Core.Services.Processing
             _container = client.GetContainer(opt.DatabaseName, opt.ContainerName);
         }
 
-        public Task UpsertReceivedAsync(TicketIngested ticket, CancellationToken ct = default)
+        public async Task PatchReceivedAsync(TicketIngested ticket, CancellationToken ct = default)
         {
             if (ticket is null) throw new ArgumentNullException(nameof(ticket));
 
-            // Upsert "minimo" per tracciare Received
-            var doc = new
-            {
-                id = ticket.MessageId,
-                messageId = ticket.MessageId,
-                CorrelationId = ticket.CorrelationId,
-                From = ticket.From,
-                Subject = ticket.Subject,
-                Body = ticket.Body,
-                ReceivedAt = ticket.ReceivedAt,
-                Source = ticket.Source,
-                Status = (int)TicketStatus.Received,
-                StatusReason = (string?)null
-            };
+            var patch = new List<PatchOperation>
+    {
+        PatchOperation.Set("/messageId", ticket.MessageId),
+        PatchOperation.Set("/correlationId", ticket.CorrelationId),
+        PatchOperation.Set("/from", ticket.From),
+        PatchOperation.Set("/subject", ticket.Subject),
+        PatchOperation.Set("/body", ticket.Body),
+        PatchOperation.Set("/receivedAt", ticket.ReceivedAt),
+        PatchOperation.Set("/source", ticket.Source),
+        PatchOperation.Set("/status", (int)TicketStatus.Received),
+        PatchOperation.Remove("/statusReason")
+    };
 
-            return _container.UpsertItemAsync(doc, new PartitionKey(ticket.MessageId), cancellationToken: ct);
+            try
+            {
+                await _container.PatchItemAsync<dynamic>(
+                    id: ticket.MessageId,
+                    partitionKey: new PartitionKey(ticket.MessageId),
+                    patchOperations: patch,
+                    cancellationToken: ct);
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Primo inserimento: crea un doc base Received
+                var doc = new
+                {
+                    id = ticket.MessageId,
+                    messageId = ticket.MessageId,
+                    correlationId = ticket.CorrelationId,
+                    from = ticket.From,
+                    subject = ticket.Subject,
+                    body = ticket.Body,
+                    receivedAt = ticket.ReceivedAt,
+                    source = ticket.Source,
+                    status = (int)TicketStatus.Received,
+                    statusReason = (string?)null
+                };
+
+                await _container.CreateItemAsync(
+                    item: doc,
+                    partitionKey: new PartitionKey(ticket.MessageId),
+                    cancellationToken: ct);
+            }
         }
     }
 }

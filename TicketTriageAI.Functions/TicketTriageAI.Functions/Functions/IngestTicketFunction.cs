@@ -67,7 +67,7 @@ public class IngestTicketFunction
 
             await _pipeline.ExecuteAsync(request, correlationId);
 
-            await _statusRepo.UpsertReceivedAsync(new TicketIngested
+            await _statusRepo.PatchReceivedAsync(new TicketIngested
             {
                 MessageId = request.MessageId,
                 CorrelationId = correlationId,
