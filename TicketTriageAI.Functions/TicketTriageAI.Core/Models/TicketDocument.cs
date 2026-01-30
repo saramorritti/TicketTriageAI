@@ -34,5 +34,7 @@ namespace TicketTriageAI.Core.Models
         public string ClassifierName { get; init; } = "fake"; // es: "fake", "openai", "rules"
         public string ClassifierVersion { get; init; } = "1"; // versione 
         public string? Model { get; init; }                   // es: "gpt-4.1-mini"
+        public TicketStatus Status { get; set; }
+        public string? StatusReason { get; set; }
     }
 }

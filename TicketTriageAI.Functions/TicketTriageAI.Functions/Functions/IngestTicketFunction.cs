@@ -1,11 +1,12 @@
-using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Ingest;
+using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Functions.Common;
 
 namespace TicketTriageAI.Functions.Functions;
@@ -17,16 +18,18 @@ public class IngestTicketFunction
     private readonly ILogger<IngestTicketFunction> _logger;
     private readonly ITicketIngestService _ingestService;
     private readonly ITicketIngestPipeline _pipeline;
-
+    private readonly ITicketStatusRepository _statusRepo;
 
     public IngestTicketFunction(
     ILogger<IngestTicketFunction> logger,
     ITicketIngestService ingestService,
-    ITicketIngestPipeline pipeline)
+    ITicketIngestPipeline pipeline,
+    ITicketStatusRepository statusRepo)
     {
         _logger = logger;
         _ingestService = ingestService;
         _pipeline = pipeline;
+        _statusRepo = statusRepo;
     }
 
 
@@ -63,6 +66,17 @@ public class IngestTicketFunction
             }
 
             await _pipeline.ExecuteAsync(request, correlationId);
+
+            await _statusRepo.UpsertReceivedAsync(new TicketIngested
+            {
+                MessageId = request.MessageId,
+                CorrelationId = correlationId,
+                From = request.From,
+                Subject = request.Subject,
+                Body = request.Body,
+                ReceivedAt = request.ReceivedAt,
+                Source = request.Source
+            });
 
             _logger.LogInformation(
                 "Ticket ingest accepted and enqueued. MessageId: {MessageId}",

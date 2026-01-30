@@ -8,6 +8,8 @@ using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services;
 using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Core.Services.Messaging;
+using TicketTriageAI.Core.Services.Factories;
+
 
 namespace TicketTriageAI.Tests
 {
@@ -18,6 +20,28 @@ namespace TicketTriageAI.Tests
         {
             // Arrange
             var publisher = new Mock<ITicketQueuePublisher>(MockBehavior.Strict);
+            var factory = new Mock<ITicketIngestedFactory>();
+
+            factory
+            .Setup(f => f.Create(
+                It.IsAny<TicketIngestedRequest>(),
+                "corr-123",
+                null))
+            .Returns((TicketIngestedRequest r, string corr, string? raw) =>
+                new TicketIngested
+                {
+                    MessageId = r.MessageId,
+                    CorrelationId = corr,
+                    From = r.From,
+                    Subject = r.Subject,
+                    Body = r.Body,
+                    ReceivedAt = r.ReceivedAt,
+                    Source = r.Source,
+                    RawMessage = raw
+                });
+
+
+
 
             TicketIngested? published = null;
 
@@ -26,7 +50,9 @@ namespace TicketTriageAI.Tests
                 .Callback<TicketIngested, System.Threading.CancellationToken>((t, _) => published = t)
                 .Returns(Task.CompletedTask);
 
-            var pipeline = new TicketIngestPipeline(publisher.Object);
+            var pipeline = new TicketIngestPipeline(
+                publisher.Object,
+                factory.Object);
 
             var req = new TicketIngestedRequest
             {

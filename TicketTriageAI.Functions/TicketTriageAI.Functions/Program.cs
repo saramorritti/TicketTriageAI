@@ -54,6 +54,7 @@ builder.Services.AddSingleton<ITicketDocumentFactory, TicketDocumentFactory>();
 
 builder.Services.AddScoped<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
 builder.Services.AddScoped<ITicketRepository, CosmosTicketRepository>();
+builder.Services.AddScoped<ITicketStatusRepository, CosmosTicketStatusRepository>();
 builder.Services.AddScoped<IValidator<TicketIngestedRequest>, TicketIngestedRequestValidator>();
 
 builder.Services.AddScoped<ITicketIngestPipeline, TicketIngestPipeline>();
