@@ -41,7 +41,7 @@ namespace TicketTriageAI.Core.Services.Processing
         PatchOperation.Set("/receivedAt", ticket.ReceivedAt),
         PatchOperation.Set("/source", ticket.Source),
         PatchOperation.Set("/status", (int)TicketStatus.Received),
-        PatchOperation.Remove("/statusReason")
+        PatchOperation.Set("/statusReason", (string?)null)
     };
 
             try
@@ -85,10 +85,8 @@ namespace TicketTriageAI.Core.Services.Processing
         PatchOperation.Set("/status", (int)status)
     };
 
-            if (string.IsNullOrWhiteSpace(reason))
-                ops.Add(PatchOperation.Remove("/statusReason"));
-            else
-                ops.Add(PatchOperation.Set("/statusReason", reason));
+            ops.Add(PatchOperation.Set("/statusReason",
+                string.IsNullOrWhiteSpace(reason) ? null : reason));
 
             await _container.PatchItemAsync<dynamic>(
                 id: messageId,

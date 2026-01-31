@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace TicketTriageAI.Core.Configuration
 {
-    public sealed class ServiceBusOptions
+    public sealed class TicketProcessingOptions
     {
-        [Required]
-        public string QueueName { get; init; } = default!;
+        public double ConfidenceThreshold { get; init; } = 0.7;
+        public bool ForceReviewOnP1 { get; init; } = true;
     }
 }

@@ -12,5 +12,7 @@ namespace TicketTriageAI.Core.Models
         public const string LowConfidence = "LowConfidence";
         public const string ModelFlagged = "ModelFlagged";
         public const string Exception = "Exception";
+        public const string SeverityCritical = "SeverityCritical";
+
     }
 }

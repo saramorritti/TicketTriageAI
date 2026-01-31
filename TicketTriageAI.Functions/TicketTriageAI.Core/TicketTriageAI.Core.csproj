@@ -18,4 +18,8 @@
 
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\TicketTriageAI.Common\TicketTriageAI.Common.csproj" />
+  </ItemGroup>
+
 </Project>

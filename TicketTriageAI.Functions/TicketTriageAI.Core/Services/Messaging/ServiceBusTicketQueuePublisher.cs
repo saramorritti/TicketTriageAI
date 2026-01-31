@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
+using TicketTriageAI.Common.Serialization;
 
 namespace TicketTriageAI.Core.Services.Messaging
 {
@@ -22,11 +23,9 @@ namespace TicketTriageAI.Core.Services.Messaging
         {
             _sender = sender;
         }
-
-
         public Task PublishAsync(TicketIngested ticket, CancellationToken ct = default)
         {
-            var payload = JsonSerializer.Serialize(ticket);
+            var payload = JsonSerializer.Serialize(ticket, JsonDefaults.Options);
 
             var message = new ServiceBusMessage(payload)
             {

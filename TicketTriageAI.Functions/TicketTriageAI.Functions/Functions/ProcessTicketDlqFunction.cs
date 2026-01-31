@@ -9,17 +9,13 @@ using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Processing;
-using TicketTriageAI.Functions.Common;
+using TicketTriageAI.Common.Logging;
+using TicketTriageAI.Common.Serialization;
 
 namespace TicketTriageAI.Functions.Functions
 {
     public sealed class ProcessTicketDlqFunction
     {
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
         private readonly ILogger<ProcessTicketDlqFunction> _logger;
         private readonly ITicketRepository _repository;
         private readonly ITicketDocumentFactory _docFactory;
@@ -45,7 +41,7 @@ namespace TicketTriageAI.Functions.Functions
 
             try
             {
-                ticket = JsonSerializer.Deserialize<TicketIngested>(message, JsonOptions);
+                ticket = JsonSerializer.Deserialize<TicketIngested>(message, JsonDefaults.Options);
             }
             catch (JsonException ex)
             {

@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 
@@ -17,24 +19,30 @@ namespace TicketTriageAI.Core.Services.Processing
         private readonly ITicketClassifier _classifier;
         private readonly ITicketRepository _repository;
         private readonly ITicketDocumentFactory _docFactory;
-        private readonly ILogger<TicketProcessingPipeline> _logger;
         private readonly ITicketStatusRepository _statusRepo;
+        private readonly ILogger<TicketProcessingPipeline> _logger;
 
+        private readonly double _confidenceThreshold;
+        private readonly bool _forceReviewOnP1;
 
         public TicketProcessingPipeline(
-        ITicketClassifier classifier,
-        ITicketRepository repository,
-        ITicketDocumentFactory docFactory,
-        ITicketStatusRepository statusRepo,
-        ILogger<TicketProcessingPipeline> logger)
+            ITicketClassifier classifier,
+            ITicketRepository repository,
+            ITicketDocumentFactory docFactory,
+            ITicketStatusRepository statusRepo,
+            IOptions<TicketProcessingOptions> options,
+            ILogger<TicketProcessingPipeline> logger)
         {
             _classifier = classifier;
             _repository = repository;
             _docFactory = docFactory;
             _statusRepo = statusRepo;
             _logger = logger;
-        }
 
+            var opt = options.Value;
+            _confidenceThreshold = opt.ConfidenceThreshold;
+            _forceReviewOnP1 = opt.ForceReviewOnP1;
+        }
 
         public async Task ExecuteAsync(TicketIngested ticket, CancellationToken ct = default)
         {
@@ -51,35 +59,50 @@ namespace TicketTriageAI.Core.Services.Processing
                 var meta = new ClassifierMetadata(
                     Name: _classifier.GetType().Name,
                     Version: "1",
-                    Model: null
-                );
+                    Model: null);
+
+                // ---- Review policy (qui risolvi l’incoerenza) ----
+                var lowConfidence = result.Confidence < _confidenceThreshold;
+                var isP1 = string.Equals(result.Severity, "P1", StringComparison.OrdinalIgnoreCase);
+
+                var needsReview =
+                    result.NeedsHumanReview
+                    || lowConfidence
+                    || (_forceReviewOnP1 && isP1);
+
+                var status = needsReview ? TicketStatus.NeedsReview : TicketStatus.Processed;
+
+                string? reason = null;
+                if (needsReview)
+                {
+                    if (lowConfidence) reason = TicketStatusReason.LowConfidence;
+                    else if (_forceReviewOnP1 && isP1) reason = TicketStatusReason.SeverityCritical; 
+                    else reason = TicketStatusReason.ModelFlagged;
+                }
 
                 var doc = _docFactory.Create(ticket, result, meta);
-
-                doc.Status = result.NeedsHumanReview
-                    ? TicketStatus.NeedsReview
-                    : TicketStatus.Processed;
-
-                doc.StatusReason = result.NeedsHumanReview
-                    ? (result.Confidence < 0.7 ? TicketStatusReason.LowConfidence : TicketStatusReason.ModelFlagged)
-                    : null;
+                doc.Status = status;
+                doc.StatusReason = reason;
 
                 await _repository.UpsertAsync(doc, ct);
 
-                if (doc.Status == TicketStatus.NeedsReview)
-                    await _statusRepo.PatchNeedsReviewAsync(ticket.MessageId, doc.StatusReason!, ct);
+                if (status == TicketStatus.NeedsReview)
+                {
+                    // qui niente ! : se reason fosse null, metti un fallback sicuro
+                    await _statusRepo.PatchNeedsReviewAsync(ticket.MessageId, reason ?? TicketStatusReason.ModelFlagged, ct);
+                }
                 else
+                {
                     await _statusRepo.PatchProcessedAsync(ticket.MessageId, ct);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Processing failed. MessageId={MessageId}", ticket.MessageId);
 
                 await _statusRepo.PatchFailedAsync(ticket.MessageId, TicketStatusReason.Exception, ct);
-
                 throw;
             }
         }
-
     }
 }
