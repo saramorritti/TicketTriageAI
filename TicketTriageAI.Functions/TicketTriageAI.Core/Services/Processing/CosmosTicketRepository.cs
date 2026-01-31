@@ -1,9 +1,11 @@
 ﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 
 namespace TicketTriageAI.Core.Services.Processing
@@ -15,11 +17,14 @@ namespace TicketTriageAI.Core.Services.Processing
 
         private readonly Container _container;
 
-        public CosmosTicketRepository(CosmosClient client)
+        public CosmosTicketRepository(
+        CosmosClient client,
+        IOptions<CosmosOptions> options)
         {
-            // DEVONO corrispondere a come hai creato Cosmos nel portal
-            _container = client.GetContainer("TicketTriage", "Tickets");
+            var opt = options.Value;
+            _container = client.GetContainer(opt.DatabaseName, opt.ContainerName);
         }
+
 
         public Task UpsertAsync(TicketDocument doc, CancellationToken ct = default)
         {

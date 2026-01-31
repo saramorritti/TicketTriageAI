@@ -9,8 +9,9 @@ namespace TicketTriageAI.Core.Models
     public enum TicketStatus
     {
         Received = 0,
-        Processed = 1,
-        NeedsReview = 2,
-        Failed = 3
+        Processing = 1,
+        Processed = 2,
+        NeedsReview = 3,
+        Failed = 4
     }
 }

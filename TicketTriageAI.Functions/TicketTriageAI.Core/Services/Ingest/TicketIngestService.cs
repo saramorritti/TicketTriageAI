@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using FluentValidation.Results;
 using System.Text.Json;
+using TicketTriageAI.Common.Serialization;
 using TicketTriageAI.Core.Models;
 using static System.Net.WebRequestMethods;
 
@@ -27,9 +28,7 @@ namespace TicketTriageAI.Core.Services.Ingest
 
             try
             {
-                request = JsonSerializer.Deserialize<TicketIngestedRequest>(
-                    body,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                request = JsonSerializer.Deserialize<TicketIngestedRequest>(body, JsonDefaults.Options);
             }
             catch
             {

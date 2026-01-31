@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 
@@ -17,48 +19,90 @@ namespace TicketTriageAI.Core.Services.Processing
         private readonly ITicketClassifier _classifier;
         private readonly ITicketRepository _repository;
         private readonly ITicketDocumentFactory _docFactory;
+        private readonly ITicketStatusRepository _statusRepo;
         private readonly ILogger<TicketProcessingPipeline> _logger;
+
+        private readonly double _confidenceThreshold;
+        private readonly bool _forceReviewOnP1;
 
         public TicketProcessingPipeline(
             ITicketClassifier classifier,
             ITicketRepository repository,
             ITicketDocumentFactory docFactory,
+            ITicketStatusRepository statusRepo,
+            IOptions<TicketProcessingOptions> options,
             ILogger<TicketProcessingPipeline> logger)
         {
             _classifier = classifier;
             _repository = repository;
             _docFactory = docFactory;
+            _statusRepo = statusRepo;
             _logger = logger;
+
+            var opt = options.Value;
+            _confidenceThreshold = opt.ConfidenceThreshold;
+            _forceReviewOnP1 = opt.ForceReviewOnP1;
         }
 
         public async Task ExecuteAsync(TicketIngested ticket, CancellationToken ct = default)
         {
-            var result = await _classifier.ClassifyAsync(ticket, ct);
+            try
+            {
+                await _statusRepo.PatchProcessingAsync(ticket.MessageId, ct);
 
-            _logger.LogInformation(
-                "Triage result. Category={Category} Severity={Severity} Confidence={Confidence} NeedsHumanReview={NeedsHumanReview}",
-                result.Category, result.Severity, result.Confidence, result.NeedsHumanReview);
+                var result = await _classifier.ClassifyAsync(ticket, ct);
 
-            // metadata auditabile (per ora hardcoded, poi lo renderemo parte del classifier)
-            var meta = new ClassifierMetadata(
-                Name: _classifier.GetType().Name,
-                Version: "1",
-                Model: null
-            );
+                _logger.LogInformation(
+                    "Triage result. Category={Category} Severity={Severity} Confidence={Confidence} NeedsHumanReview={NeedsHumanReview}",
+                    result.Category, result.Severity, result.Confidence, result.NeedsHumanReview);
 
-            var doc = _docFactory.Create(ticket, result, meta);
+                var meta = new ClassifierMetadata(
+                    Name: _classifier.GetType().Name,
+                    Version: "1",
+                    Model: null);
 
-            // STATUS (nuovo)
-            doc.Status = result.NeedsHumanReview
-                ? TicketStatus.NeedsReview
-                : TicketStatus.Processed;
+                // ---- Review policy (qui risolvi l’incoerenza) ----
+                var lowConfidence = result.Confidence < _confidenceThreshold;
+                var isP1 = string.Equals(result.Severity, "P1", StringComparison.OrdinalIgnoreCase);
 
-            doc.StatusReason = result.NeedsHumanReview
-                ? (result.Confidence < 0.7 ? "LowConfidence" : "ModelFlagged")
-                : null;
+                var needsReview =
+                    result.NeedsHumanReview
+                    || lowConfidence
+                    || (_forceReviewOnP1 && isP1);
 
-            await _repository.UpsertAsync(doc, ct);
+                var status = needsReview ? TicketStatus.NeedsReview : TicketStatus.Processed;
 
+                string? reason = null;
+                if (needsReview)
+                {
+                    if (lowConfidence) reason = TicketStatusReason.LowConfidence;
+                    else if (_forceReviewOnP1 && isP1) reason = TicketStatusReason.SeverityCritical; 
+                    else reason = TicketStatusReason.ModelFlagged;
+                }
+
+                var doc = _docFactory.Create(ticket, result, meta);
+                doc.Status = status;
+                doc.StatusReason = reason;
+
+                await _repository.UpsertAsync(doc, ct);
+
+                if (status == TicketStatus.NeedsReview)
+                {
+                    // qui niente ! : se reason fosse null, metti un fallback sicuro
+                    await _statusRepo.PatchNeedsReviewAsync(ticket.MessageId, reason ?? TicketStatusReason.ModelFlagged, ct);
+                }
+                else
+                {
+                    await _statusRepo.PatchProcessedAsync(ticket.MessageId, ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Processing failed. MessageId={MessageId}", ticket.MessageId);
+
+                await _statusRepo.PatchFailedAsync(ticket.MessageId, TicketStatusReason.Exception, ct);
+                throw;
+            }
         }
     }
 }

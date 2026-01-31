@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TicketTriageAI.Functions.Common
+namespace TicketTriageAI.Common.Http
 {
-    internal static class HeaderNames
+    public static class HeaderNames
     {
         public const string CorrelationId = "X-Correlation-Id";
     }
-
 }

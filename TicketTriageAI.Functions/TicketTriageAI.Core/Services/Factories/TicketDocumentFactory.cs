@@ -34,5 +34,62 @@ namespace TicketTriageAI.Core.Services.Factories
 
                 ProcessedAtUtc = DateTime.UtcNow
             };
+        public TicketDocument CreateReceived(TicketIngested ticket)
+            => new()
+            {
+                Id = ticket.MessageId,
+                MessageId = ticket.MessageId,
+
+                CorrelationId = ticket.CorrelationId,
+                From = ticket.From,
+                Subject = ticket.Subject,
+                Body = ticket.Body,
+                ReceivedAt = ticket.ReceivedAt,
+                Source = ticket.Source,
+
+                // campi "triage" non disponibili in ingest -> default safe
+                Category = "n/a",
+                Severity = "n/a",
+                Confidence = 0,
+                NeedsHumanReview = false,
+
+                RawMessage = ticket.RawMessage ?? string.Empty,
+                ClassifierName = "system",
+                ClassifierVersion = "n/a",
+                Model = null,
+
+                Status = TicketStatus.Received,
+                StatusReason = null,
+                ProcessedAtUtc = DateTime.UtcNow
+            };
+
+        public TicketDocument CreateFailedFromDlq(TicketIngested ticket, string reason)
+            => new()
+            {
+                Id = ticket.MessageId,
+                MessageId = ticket.MessageId,
+
+                CorrelationId = ticket.CorrelationId,
+                From = ticket.From,
+                Subject = ticket.Subject,
+                Body = ticket.Body,
+                ReceivedAt = ticket.ReceivedAt,
+                Source = ticket.Source,
+
+                Category = "dlq",
+                Severity = "n/a",
+                Confidence = 0,
+                NeedsHumanReview = true,
+
+                RawMessage = ticket.RawMessage ?? string.Empty,
+                ClassifierName = "system",
+                ClassifierVersion = "n/a",
+                Model = null,
+
+                Status = TicketStatus.Failed,
+                StatusReason = reason,
+                ProcessedAtUtc = DateTime.UtcNow
+            };
+
     }
 }

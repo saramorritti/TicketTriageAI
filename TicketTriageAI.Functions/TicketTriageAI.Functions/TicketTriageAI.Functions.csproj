@@ -22,6 +22,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\TicketTriageAI.Common\TicketTriageAI.Common.csproj" />
     <ProjectReference Include="..\TicketTriageAI.Core\TicketTriageAI.Core.csproj" />
   </ItemGroup>
   <ItemGroup>

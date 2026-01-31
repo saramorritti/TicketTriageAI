@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TicketTriageAI.Functions.Common
+namespace TicketTriageAI.Common.Http
 {
-    internal static class ApiMessages
+    public static class ApiMessages
     {
         public const string EmptyBody = "Request body is empty";
         public const string InvalidPayload = "Invalid request payload";

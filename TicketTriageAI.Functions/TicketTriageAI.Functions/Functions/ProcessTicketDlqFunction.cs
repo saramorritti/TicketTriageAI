@@ -7,27 +7,28 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
+using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Processing;
-using TicketTriageAI.Functions.Common;
+using TicketTriageAI.Common.Logging;
+using TicketTriageAI.Common.Serialization;
 
 namespace TicketTriageAI.Functions.Functions
 {
     public sealed class ProcessTicketDlqFunction
     {
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
         private readonly ILogger<ProcessTicketDlqFunction> _logger;
         private readonly ITicketRepository _repository;
+        private readonly ITicketDocumentFactory _docFactory;
+
 
         public ProcessTicketDlqFunction(
-            ILogger<ProcessTicketDlqFunction> logger,
-            ITicketRepository repository)
+        ILogger<ProcessTicketDlqFunction> logger,
+        ITicketRepository repository,
+        ITicketDocumentFactory docFactory)
         {
             _logger = logger;
             _repository = repository;
+            _docFactory = docFactory;
         }
 
         [Function("ProcessTicketDlq")]
@@ -40,7 +41,7 @@ namespace TicketTriageAI.Functions.Functions
 
             try
             {
-                ticket = JsonSerializer.Deserialize<TicketIngested>(message, JsonOptions);
+                ticket = JsonSerializer.Deserialize<TicketIngested>(message, JsonDefaults.Options);
             }
             catch (JsonException ex)
             {
@@ -60,25 +61,7 @@ namespace TicketTriageAI.Functions.Functions
             {
                 _logger.LogWarning("Message landed in DLQ. Marking as Failed. MessageId={MessageId}", ticket.MessageId);
 
-                // Creiamo un doc minimo "failed" (upsert sullo stesso id/messageId)
-                var failedDoc = new TicketDocument
-                {
-                    Id = ticket.MessageId,
-                    MessageId = ticket.MessageId,
-                    CorrelationId = ticket.CorrelationId,
-                    From = ticket.From,
-                    Subject = ticket.Subject,
-                    Body = ticket.Body,
-                    ReceivedAt = ticket.ReceivedAt,
-                    Source = ticket.Source,
-                    RawMessage = ticket.RawMessage,
-
-                    Status = TicketStatus.Failed,
-                    StatusReason = "DeadLetter",
-
-                    ProcessedAtUtc = DateTime.UtcNow
-                };
-
+                var failedDoc = _docFactory.CreateFailedFromDlq(ticket, TicketStatusReason.DeadLetter);
                 await _repository.UpsertAsync(failedDoc, ct);
 
                 _logger.LogWarning("DLQ message marked as Failed in Cosmos. MessageId={MessageId}", ticket.MessageId);

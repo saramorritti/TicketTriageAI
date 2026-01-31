@@ -10,31 +10,92 @@ namespace TicketTriageAI.Core.Models
 {
     public sealed class TicketDocument
     {
-        [JsonPropertyName("id")]
+        // ========= COSMOS KEYS =========
+
         [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; init; } = default!;
 
-        [JsonPropertyName("messageId")]
         [JsonProperty("messageId")]
+        [JsonPropertyName("messageId")]
         public string MessageId { get; init; } = default!;
 
+        // ========= METADATA =========
+
+        [JsonProperty("correlationId")]
+        [JsonPropertyName("correlationId")]
         public string CorrelationId { get; init; } = default!;
+
+        [JsonProperty("from")]
+        [JsonPropertyName("from")]
         public string From { get; init; } = default!;
+
+        [JsonProperty("subject")]
+        [JsonPropertyName("subject")]
         public string Subject { get; init; } = default!;
+
+        [JsonProperty("body")]
+        [JsonPropertyName("body")]
         public string Body { get; init; } = default!;
+
+        [JsonProperty("receivedAt")]
+        [JsonPropertyName("receivedAt")]
         public DateTime ReceivedAt { get; init; }
+
+        [JsonProperty("source")]
+        [JsonPropertyName("source")]
         public string Source { get; init; } = "email";
 
-        public string Category { get; init; } = default!;
-        public string Severity { get; init; } = default!;
+        // ========= TRIAGE =========
+
+        [JsonProperty("category")]
+        [JsonPropertyName("category")]
+        public string? Category { get; init; }
+
+        [JsonProperty("severity")]
+        [JsonPropertyName("severity")]
+        public string? Severity { get; init; }
+
+        [JsonProperty("confidence")]
+        [JsonPropertyName("confidence")]
         public double Confidence { get; init; }
+
+        [JsonProperty("needsHumanReview")]
+        [JsonPropertyName("needsHumanReview")]
         public bool NeedsHumanReview { get; init; }
+
+        // ========= CLASSIFIER AUDIT =========
+
+        [JsonProperty("classifierName")]
+        [JsonPropertyName("classifierName")]
+        public string ClassifierName { get; init; } = "unknown";
+
+        [JsonProperty("classifierVersion")]
+        [JsonPropertyName("classifierVersion")]
+        public string ClassifierVersion { get; init; } = "1";
+
+        [JsonProperty("model")]
+        [JsonPropertyName("model")]
+        public string? Model { get; init; }
+
+        // ========= PROCESSING =========
+
+        [JsonProperty("processedAtUtc")]
+        [JsonPropertyName("processedAtUtc")]
         public DateTime ProcessedAtUtc { get; init; } = DateTime.UtcNow;
-        public string RawMessage { get; init; } = default!;   // il JSON originale ricevuto (audit)
-        public string ClassifierName { get; init; } = "fake"; // es: "fake", "openai", "rules"
-        public string ClassifierVersion { get; init; } = "1"; // versione 
-        public string? Model { get; init; }                   // es: "gpt-4.1-mini"
+
+        [JsonProperty("rawMessage")]
+        [JsonPropertyName("rawMessage")]
+        public string RawMessage { get; init; } = default!;
+
+        // ========= STATE MACHINE =========
+
+        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public TicketStatus Status { get; set; }
+
+        [JsonProperty("statusReason")]
+        [JsonPropertyName("statusReason")]
         public string? StatusReason { get; set; }
     }
 }

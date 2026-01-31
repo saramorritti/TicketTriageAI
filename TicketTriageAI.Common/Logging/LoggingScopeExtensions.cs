@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TicketTriageAI.Functions.Common
+namespace TicketTriageAI.Common.Logging
 {
     public static class LoggingScopeExtensions
     {

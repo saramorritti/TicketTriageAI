@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using OpenAI;
 using OpenAI.Chat;
 using System.ClientModel;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Ingest;
@@ -21,10 +22,40 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
+builder.Services
+    .AddOptions<ServiceBusOptions>()
+    .Bind(builder.Configuration.GetSection("ServiceBus"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services
+    .AddOptions<CosmosOptions>()
+    .Bind(builder.Configuration.GetSection("Cosmos"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services
+    .AddOptions<TicketProcessingOptions>()
+    .Bind(builder.Configuration.GetSection("Processing"))
+    .ValidateOnStart();
+
+
 builder.Services.AddSingleton(_ =>
     new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBusConnection")));
 builder.Services.AddSingleton(_ =>
     new CosmosClient(Environment.GetEnvironmentVariable("CosmosDbConnection")));
+
+builder.Services.AddSingleton(sp =>
+{
+    var client = sp.GetRequiredService<ServiceBusClient>();
+    var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ServiceBusOptions>>().Value;
+
+    if (string.IsNullOrWhiteSpace(opt.QueueName))
+        throw new InvalidOperationException("Missing ServiceBus:QueueName (set ServiceBus__QueueName in local.settings.json Values).");
+
+    return client.CreateSender(opt.QueueName);
+});
+
 
 builder.Services.AddSingleton<ChatClient>(_ =>
 {
@@ -52,7 +83,7 @@ builder.Services.AddSingleton<ChatClient>(_ =>
 builder.Services.AddSingleton<ITicketIngestedFactory, TicketIngestedFactory>();
 builder.Services.AddSingleton<ITicketDocumentFactory, TicketDocumentFactory>();
 
-builder.Services.AddScoped<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
+builder.Services.AddSingleton<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
 builder.Services.AddScoped<ITicketRepository, CosmosTicketRepository>();
 builder.Services.AddScoped<ITicketStatusRepository, CosmosTicketStatusRepository>();
 builder.Services.AddScoped<IValidator<TicketIngestedRequest>, TicketIngestedRequestValidator>();

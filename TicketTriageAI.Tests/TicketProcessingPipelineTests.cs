@@ -1,13 +1,15 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Core.Services.Factories;
+using TicketTriageAI.Core.Services.Processing;
 
 
 namespace TicketTriageAI.Tests
@@ -23,6 +25,20 @@ namespace TicketTriageAI.Tests
             var classifier = new Mock<ITicketClassifier>(MockBehavior.Strict);
             var repository = new Mock<ITicketRepository>(MockBehavior.Strict);
             var docFactory = new Mock<ITicketDocumentFactory>();
+            var statusRepo = new Mock<ITicketStatusRepository>(MockBehavior.Strict);
+            var options = Options.Create(new TicketProcessingOptions
+            {
+                ConfidenceThreshold = 0.7,
+                ForceReviewOnP1 = true
+            });
+
+            statusRepo
+                .Setup(s => s.PatchProcessingAsync("msg-001", It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            statusRepo
+                .Setup(s => s.PatchProcessedAsync("msg-001", It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
 
             docFactory
             .Setup(f => f.Create(
@@ -69,11 +85,14 @@ namespace TicketTriageAI.Tests
                 .Returns(Task.CompletedTask);
 
             var logger = NullLogger<TicketProcessingPipeline>.Instance;
+
             var pipeline = new TicketProcessingPipeline(
-                classifier.Object,
-                repository.Object,
-                docFactory.Object,
-                logger);
+            classifier.Object,
+            repository.Object,
+            docFactory.Object,
+            statusRepo.Object,
+            options,
+            logger);
 
             var ticket = new TicketIngested
             {
@@ -107,6 +126,10 @@ namespace TicketTriageAI.Tests
                     d.NeedsHumanReview == false),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
+
+            statusRepo.Verify(s => s.PatchProcessingAsync("msg-001", It.IsAny<CancellationToken>()), Times.Once);
+            statusRepo.Verify(s => s.PatchProcessedAsync("msg-001", It.IsAny<CancellationToken>()), Times.Once);
+
         }
     }
 }

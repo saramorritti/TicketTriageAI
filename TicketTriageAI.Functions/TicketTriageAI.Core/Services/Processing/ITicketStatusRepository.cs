@@ -9,6 +9,12 @@ namespace TicketTriageAI.Core.Services.Processing
 {
     public interface ITicketStatusRepository
     {
-        Task UpsertReceivedAsync(TicketIngested ticket, CancellationToken ct = default);
+        Task PatchReceivedAsync(TicketIngested ticket, CancellationToken ct = default);
+
+        Task PatchProcessingAsync(string messageId, CancellationToken ct = default);
+        Task PatchProcessedAsync(string messageId, CancellationToken ct = default);
+        Task PatchNeedsReviewAsync(string messageId, string reason, CancellationToken ct = default);
+        Task PatchFailedAsync(string messageId, string reason, CancellationToken ct = default);
+
     }
 }
