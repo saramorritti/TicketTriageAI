@@ -12,5 +12,8 @@ namespace TicketTriageAI.Core.Models
         public string Severity { get; init; } = "P3";
         public double Confidence { get; init; }
         public bool NeedsHumanReview { get; init; }
+        public string Summary { get; init; } = string.Empty;
+        public IReadOnlyList<string> Entities { get; init; } = Array.Empty<string>();
+
     }
 }

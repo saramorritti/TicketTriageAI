@@ -64,6 +64,15 @@ namespace TicketTriageAI.Core.Models
         [JsonPropertyName("needsHumanReview")]
         public bool NeedsHumanReview { get; init; }
 
+        [JsonProperty("summary")]
+        [JsonPropertyName("summary")]
+        public string? Summary { get; init; }
+
+        [JsonProperty("entities")]
+        [JsonPropertyName("entities")]
+        public IReadOnlyList<string>? Entities { get; init; }
+
+
         // ========= CLASSIFIER AUDIT =========
 
         [JsonProperty("classifierName")]

@@ -43,8 +43,11 @@ namespace TicketTriageAI.Core.Services.Processing.AI
                 "category (billing|support|technical|other), " +
                 "severity (P1|P2|P3), " +
                 "confidence (0..1), " +
-                "needsHumanReview (true|false). " +
+                "needsHumanReview (true|false), " +
+                "summary (string, max 200 chars), " +
+                "entities (array of strings). " +
                 "No markdown. No explanations. No extra text.";
+
 
             var userPrompt =
                 $"Subject: {ticket.Subject}\n" +
@@ -55,7 +58,7 @@ namespace TicketTriageAI.Core.Services.Processing.AI
             var options = new ChatCompletionOptions
             {
                 Temperature = 0.0f,
-                MaxOutputTokenCount = 200
+                MaxOutputTokenCount = 350
             };
 
             ChatCompletion completion = await _chat.CompleteChatAsync(
@@ -88,12 +91,26 @@ namespace TicketTriageAI.Core.Services.Processing.AI
                 if (confidence < _confidenceThreshold)
                     needsHumanReview = true;
 
+                var summary = root.TryGetProperty("summary", out var sEl) ? sEl.GetString() : string.Empty;
+
+                var entities = Array.Empty<string>();
+                if (root.TryGetProperty("entities", out var eEl) && eEl.ValueKind == JsonValueKind.Array)
+                {
+                    entities = eEl.EnumerateArray()
+                        .Where(x => x.ValueKind == JsonValueKind.String)
+                        .Select(x => x.GetString()!)
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .ToArray();
+                }
+
                 return new TicketTriageResult
                 {
                     Category = NormalizeCategory(category),
                     Severity = NormalizeSeverity(severity),
                     Confidence = confidence,
-                    NeedsHumanReview = needsHumanReview
+                    NeedsHumanReview = needsHumanReview,
+                    Summary = (summary ?? string.Empty).Trim(),
+                    Entities = entities
                 };
             }
             catch
@@ -107,8 +124,11 @@ namespace TicketTriageAI.Core.Services.Processing.AI
             Category = "other",
             Severity = "P3",
             Confidence = 0.0,
-            NeedsHumanReview = true
+            NeedsHumanReview = true,
+            Summary = string.Empty,
+            Entities = Array.Empty<string>()
         };
+
 
         private static string NormalizeCategory(string? value)
         {
