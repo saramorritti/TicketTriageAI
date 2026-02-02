@@ -15,10 +15,12 @@ namespace TicketTriageAI.Core.Services.Processing.AI
     {
         private readonly ChatClient _chat;
         private readonly double _confidenceThreshold;
+        private readonly ITextNormalizer _textNormalizer;
 
-        public AzureOpenAITicketClassifier(ChatClient chatClient, IConfiguration configuration)
+        public AzureOpenAITicketClassifier(ChatClient chatClient, IConfiguration configuration, ITextNormalizer textNormalizer)
         {
             _chat = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
+            _textNormalizer = textNormalizer;
 
             var thresholdRaw = configuration["AzureOpenAIConfidenceThreshold"] ?? "0.7";
             _confidenceThreshold = double.TryParse(
@@ -48,12 +50,14 @@ namespace TicketTriageAI.Core.Services.Processing.AI
                 "entities (array of strings). " +
                 "No markdown. No explanations. No extra text.";
 
+            var cleanBody = _textNormalizer.Normalize(ticket.Body);
 
             var userPrompt =
                 $"Subject: {ticket.Subject}\n" +
-                $"Body: {ticket.Body}\n" +
+                $"Body: {cleanBody}\n" +
                 $"From: {ticket.From}\n" +
                 $"Source: {ticket.Source}\n";
+
 
             var options = new ChatCompletionOptions
             {

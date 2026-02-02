@@ -83,6 +83,8 @@ builder.Services.AddSingleton<ChatClient>(_ =>
 builder.Services.AddSingleton<ITicketIngestedFactory, TicketIngestedFactory>();
 builder.Services.AddSingleton<ITicketDocumentFactory, TicketDocumentFactory>();
 
+builder.Services.AddScoped<ITextNormalizer, DefaultTextNormalizer>();
+
 builder.Services.AddSingleton<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
 builder.Services.AddScoped<ITicketRepository, CosmosTicketRepository>();
 builder.Services.AddScoped<ITicketStatusRepository, CosmosTicketStatusRepository>();
