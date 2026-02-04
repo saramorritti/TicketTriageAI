@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
+using TicketTriageAI.Core.Services.Notifications;
 using TicketTriageAI.Core.Services.Text;
 
 namespace TicketTriageAI.Core.Services.Processing
@@ -24,6 +25,8 @@ namespace TicketTriageAI.Core.Services.Processing
         private readonly ILogger<TicketProcessingPipeline> _logger;
         private readonly ITextNormalizer _normalizer;
 
+        private readonly ITicketNotificationService _notifier;
+        private readonly NotificationOptions _notificationOptions;
 
         private readonly double _confidenceThreshold;
         private readonly bool _forceReviewOnP1;
@@ -33,6 +36,8 @@ namespace TicketTriageAI.Core.Services.Processing
             ITicketRepository repository,
             ITicketDocumentFactory docFactory,
             ITicketStatusRepository statusRepo,
+            ITicketNotificationService notifier,
+            IOptions<NotificationOptions> notificationOptions,
             IOptions<TicketProcessingOptions> options,
             ILogger<TicketProcessingPipeline> logger,
             ITextNormalizer normalizer)
@@ -43,6 +48,8 @@ namespace TicketTriageAI.Core.Services.Processing
             _statusRepo = statusRepo;
             _logger = logger;
             _normalizer = normalizer;
+            _notifier = notifier;
+            _notificationOptions = notificationOptions.Value;
 
             var opt = options.Value;
             _confidenceThreshold = opt.ConfidenceThreshold;
@@ -112,6 +119,8 @@ namespace TicketTriageAI.Core.Services.Processing
 
                 if (status == TicketStatus.NeedsReview)
                 {
+                    await _notifier.NotifyNeedsReviewAsync(doc, _notificationOptions.DashboardBaseUrl, ct);
+
                     // qui niente ! : se reason fosse null, metti un fallback sicuro
                     await _statusRepo.PatchNeedsReviewAsync(ticket.MessageId, reason ?? TicketStatusReason.ModelFlagged, ct);
                 }
