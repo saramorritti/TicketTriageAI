@@ -26,6 +26,8 @@ namespace TicketTriageAI.Core.Services.Factories
                 Severity = triage.Severity,
                 Confidence = triage.Confidence,
                 NeedsHumanReview = triage.NeedsHumanReview,
+                Summary = triage.Summary,
+                Entities = triage.Entities?.ToArray(),
 
                 RawMessage = ticket.RawMessage,
                 ClassifierName = meta.Name,
@@ -52,6 +54,9 @@ namespace TicketTriageAI.Core.Services.Factories
                 Severity = "n/a",
                 Confidence = 0,
                 NeedsHumanReview = false,
+
+                Summary = string.Empty,
+                Entities = Array.Empty<string>(),
 
                 RawMessage = ticket.RawMessage ?? string.Empty,
                 ClassifierName = "system",
@@ -80,6 +85,8 @@ namespace TicketTriageAI.Core.Services.Factories
                 Severity = "n/a",
                 Confidence = 0,
                 NeedsHumanReview = true,
+                Summary = string.Empty,
+                Entities = Array.Empty<string>(),
 
                 RawMessage = ticket.RawMessage ?? string.Empty,
                 ClassifierName = "system",
