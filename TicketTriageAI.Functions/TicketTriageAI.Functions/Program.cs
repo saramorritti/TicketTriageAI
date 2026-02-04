@@ -14,6 +14,7 @@ using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Core.Services.Messaging;
 using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Core.Services.Processing.AI;
+using TicketTriageAI.Core.Services.Text;
 using TicketTriageAI.Core.Validators;
 
 
@@ -83,7 +84,7 @@ builder.Services.AddSingleton<ChatClient>(_ =>
 builder.Services.AddSingleton<ITicketIngestedFactory, TicketIngestedFactory>();
 builder.Services.AddSingleton<ITicketDocumentFactory, TicketDocumentFactory>();
 
-builder.Services.AddScoped<ITextNormalizer, DefaultTextNormalizer>();
+builder.Services.AddScoped<ITextNormalizer, EmailTextNormalizer>();
 
 builder.Services.AddSingleton<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
 builder.Services.AddScoped<ITicketRepository, CosmosTicketRepository>();

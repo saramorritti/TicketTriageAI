@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
+using TicketTriageAI.Core.Services.Text;
 
 namespace TicketTriageAI.Core.Services.Processing
 {
@@ -21,6 +22,8 @@ namespace TicketTriageAI.Core.Services.Processing
         private readonly ITicketDocumentFactory _docFactory;
         private readonly ITicketStatusRepository _statusRepo;
         private readonly ILogger<TicketProcessingPipeline> _logger;
+        private readonly ITextNormalizer _normalizer;
+
 
         private readonly double _confidenceThreshold;
         private readonly bool _forceReviewOnP1;
@@ -31,13 +34,15 @@ namespace TicketTriageAI.Core.Services.Processing
             ITicketDocumentFactory docFactory,
             ITicketStatusRepository statusRepo,
             IOptions<TicketProcessingOptions> options,
-            ILogger<TicketProcessingPipeline> logger)
+            ILogger<TicketProcessingPipeline> logger,
+            ITextNormalizer normalizer)
         {
             _classifier = classifier;
             _repository = repository;
             _docFactory = docFactory;
             _statusRepo = statusRepo;
             _logger = logger;
+            _normalizer = normalizer;
 
             var opt = options.Value;
             _confidenceThreshold = opt.ConfidenceThreshold;
@@ -50,7 +55,25 @@ namespace TicketTriageAI.Core.Services.Processing
             {
                 await _statusRepo.PatchProcessingAsync(ticket.MessageId, ct);
 
-                var result = await _classifier.ClassifyAsync(ticket, ct);
+                var cleanedBody = _normalizer.Normalize(ticket.Body);
+
+                var normalizedTicket = new TicketIngested
+                {
+                    MessageId = ticket.MessageId,
+                    CorrelationId = ticket.CorrelationId,
+                    From = ticket.From,
+                    Subject = ticket.Subject,
+                    Body = cleanedBody,
+                    ReceivedAt = ticket.ReceivedAt,
+                    Source = ticket.Source,
+                    RawMessage = ticket.RawMessage
+                };
+
+                var result = await _classifier.ClassifyAsync(normalizedTicket, ct);
+                _logger.LogInformation(
+                    "Body normalized. OriginalLen={Orig} CleanLen={Clean}", 
+                    ticket.Body?.Length ?? 0, cleanedBody.Length);
+
 
                 _logger.LogInformation(
                     "Triage result. Category={Category} Severity={Severity} Confidence={Confidence} NeedsHumanReview={NeedsHumanReview}",

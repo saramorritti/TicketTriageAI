@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Processing;
+using TicketTriageAI.Core.Services.Text;
 
 namespace TicketTriageAI.Core.Services.Processing.AI
 {
