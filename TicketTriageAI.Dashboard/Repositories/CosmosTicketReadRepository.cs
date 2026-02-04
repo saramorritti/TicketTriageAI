@@ -33,11 +33,12 @@ namespace TicketTriageAI.Dashboard.Repositories
             }
         }
 
-        public async Task<IReadOnlyList<TicketListItem>> SearchAsync(TicketSearchQuery query, CancellationToken ct = default)
+        public async Task<PagedResult<TicketListItem>> SearchAsync(
+    TicketSearchQuery query,
+    string? continuationToken,
+    CancellationToken ct = default)
         {
-            var page = Math.Max(1, query.Page);
             var size = Math.Clamp(query.PageSize, 1, 100);
-            var offset = (page - 1) * size;
 
             var where = "WHERE 1=1";
 
@@ -48,21 +49,19 @@ namespace TicketTriageAI.Dashboard.Repositories
                 where += " AND (CONTAINS(LOWER(c.subject), @q) OR CONTAINS(LOWER(c[\"from\"]), @q))";
 
             var sql =
-            $@"SELECT 
-                    c.messageId,
-                    c.receivedAt,
-                    c[""from""] AS sender,
-                    c.subject,
-                    c.category,
-                    c.severity,
-                    c.confidence,
-                    c.status,
-                    c.statusReason
-                FROM c
-                {where}
-                ORDER BY c.receivedAt DESC
-                OFFSET {offset} LIMIT {size}";
-
+                $@"SELECT 
+              c.messageId,
+              c.receivedAt,
+              c[""from""] AS sender,
+              c.subject,
+              c.category,
+              c.severity,
+              c.confidence,
+              c.status,
+              c.statusReason
+           FROM c
+           {where}
+           ORDER BY c.receivedAt DESC";
 
             var qd = new QueryDefinition(sql);
 
@@ -72,35 +71,52 @@ namespace TicketTriageAI.Dashboard.Repositories
             if (!string.IsNullOrWhiteSpace(query.Q))
                 qd = qd.WithParameter("@q", query.Q.Trim().ToLowerInvariant());
 
+            var options = new QueryRequestOptions
+            {
+                MaxItemCount = size
+            };
+
+            using var it = _container.GetItemQueryIterator<dynamic>(
+                qd,
+                continuationToken,
+                options);
+
             var results = new List<TicketListItem>();
 
-            using var it = _container.GetItemQueryIterator<dynamic>(qd);
-
-            while (it.HasMoreResults)
+            if (!it.HasMoreResults)
             {
-                var pageRes = await it.ReadNextAsync(ct);
-
-                foreach (var row in pageRes)
+                return new PagedResult<TicketListItem>
                 {
-                    results.Add(new TicketListItem
-                    {
-                        MessageId = row.messageId,
-                        ReceivedAt = row.receivedAt,
-                        From = row.sender,
-                        Subject = row.subject,
-                        Category = row.category,
-                        Severity = row.severity,
-                        Confidence = row.confidence,
-                        Status = (TicketStatus)(int)row.status,
-                        StatusReason = row.statusReason
-                    });
-                }
-
-                break; 
+                    Items = results,
+                    ContinuationToken = null
+                };
             }
 
-            return results;
+            var pageRes = await it.ReadNextAsync(ct);
+
+            foreach (var row in pageRes)
+            {
+                results.Add(new TicketListItem
+                {
+                    MessageId = row.messageId,
+                    ReceivedAt = row.receivedAt,
+                    From = row.sender,
+                    Subject = row.subject,
+                    Category = row.category,
+                    Severity = row.severity,
+                    Confidence = row.confidence,
+                    Status = (TicketStatus)(int)row.status,
+                    StatusReason = row.statusReason
+                });
+            }
+
+            return new PagedResult<TicketListItem>
+            {
+                Items = results,
+                ContinuationToken = pageRes.ContinuationToken
+            };
         }
+
 
     }
 }
