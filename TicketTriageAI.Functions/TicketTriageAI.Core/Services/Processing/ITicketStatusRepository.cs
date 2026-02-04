@@ -15,6 +15,8 @@ namespace TicketTriageAI.Core.Services.Processing
         Task PatchProcessedAsync(string messageId, CancellationToken ct = default);
         Task PatchNeedsReviewAsync(string messageId, string reason, CancellationToken ct = default);
         Task PatchFailedAsync(string messageId, string reason, CancellationToken ct = default);
+        Task<bool> ExistsAsync(string messageId, CancellationToken ct = default);
+
 
     }
 }

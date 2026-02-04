@@ -9,9 +9,6 @@ namespace TicketTriageAI.Core.Services.Ingest
 {
     public interface ITicketIngestPipeline
     {
-        Task ExecuteAsync(
-            TicketIngestedRequest request,
-            string correlationId,
-            CancellationToken ct = default);
+        Task<bool> ExecuteAsync(TicketIngestedRequest request, string correlationId, CancellationToken ct = default);
     }
 }

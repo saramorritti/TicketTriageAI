@@ -30,13 +30,24 @@ namespace TicketTriageAI.Core.Services.Ingest
         }
 
 
-        public async Task ExecuteAsync(TicketIngestedRequest request, string correlationId, CancellationToken ct = default)
+        public async Task<bool> ExecuteAsync(
+            TicketIngestedRequest request,
+            string correlationId,
+            CancellationToken ct = default)
         {
+            if (await _statusRepository.ExistsAsync(request.MessageId, ct))
+            {
+                return false;
+            }
+
             var ticketEvent = _factory.Create(request, correlationId);
 
             await _statusRepository.PatchReceivedAsync(ticketEvent, ct);
             await _publisher.PublishAsync(ticketEvent, ct);
 
+            return true;
         }
+
+
     }
 }

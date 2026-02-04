@@ -32,17 +32,17 @@ namespace TicketTriageAI.Core.Services.Processing
             if (ticket is null) throw new ArgumentNullException(nameof(ticket));
 
             var patch = new List<PatchOperation>
-    {
-        PatchOperation.Set("/messageId", ticket.MessageId),
-        PatchOperation.Set("/correlationId", ticket.CorrelationId),
-        PatchOperation.Set("/from", ticket.From),
-        PatchOperation.Set("/subject", ticket.Subject),
-        PatchOperation.Set("/body", ticket.Body),
-        PatchOperation.Set("/receivedAt", ticket.ReceivedAt),
-        PatchOperation.Set("/source", ticket.Source),
-        PatchOperation.Set("/status", (int)TicketStatus.Received),
-        PatchOperation.Set("/statusReason", (string?)null)
-    };
+            {
+                PatchOperation.Set("/messageId", ticket.MessageId),
+                PatchOperation.Set("/correlationId", ticket.CorrelationId),
+                PatchOperation.Set("/from", ticket.From),
+                PatchOperation.Set("/subject", ticket.Subject),
+                PatchOperation.Set("/body", ticket.Body),
+                PatchOperation.Set("/receivedAt", ticket.ReceivedAt),
+                PatchOperation.Set("/source", ticket.Source),
+                PatchOperation.Set("/status", (int)TicketStatus.Received),
+                PatchOperation.Set("/statusReason", (string?)null)
+            };
 
             try
             {
@@ -63,7 +63,7 @@ namespace TicketTriageAI.Core.Services.Processing
             }
         }
         public Task PatchProcessingAsync(string messageId, CancellationToken ct = default)
-    => PatchStatusAsync(messageId, TicketStatus.Processing, reason: null, ct);
+            => PatchStatusAsync(messageId, TicketStatus.Processing, reason: null, ct);
 
         public Task PatchProcessedAsync(string messageId, CancellationToken ct = default)
             => PatchStatusAsync(messageId, TicketStatus.Processed, reason: null, ct);
@@ -75,15 +75,15 @@ namespace TicketTriageAI.Core.Services.Processing
             => PatchStatusAsync(messageId, TicketStatus.Failed, reason, ct);
 
         private async Task PatchStatusAsync(
-    string messageId,
-    TicketStatus status,
-    string? reason,
-    CancellationToken ct)
+            string messageId,
+            TicketStatus status,
+            string? reason,
+            CancellationToken ct)
         {
             var ops = new List<PatchOperation>
-    {
-        PatchOperation.Set("/status", (int)status)
-    };
+            {
+                PatchOperation.Set("/status", (int)status)
+            };
 
             ops.Add(PatchOperation.Set("/statusReason",
                 string.IsNullOrWhiteSpace(reason) ? null : reason));
@@ -93,6 +93,23 @@ namespace TicketTriageAI.Core.Services.Processing
                 partitionKey: new PartitionKey(messageId),
                 patchOperations: ops,
                 cancellationToken: ct);
+        }
+
+        public async Task<bool> ExistsAsync(string messageId, CancellationToken ct = default)
+        {
+            try
+            {
+                await _container.ReadItemAsync<dynamic>(
+                    id: messageId,
+                    partitionKey: new PartitionKey(messageId),
+                    cancellationToken: ct);
+
+                return true;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return false;
+            }
         }
 
     }

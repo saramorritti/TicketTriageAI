@@ -3,27 +3,63 @@
 
 @if (Model.Ticket is null)
 {
-    <p>Not found</p>
+    <p>Ticket not found.</p>
     return;
 }
 
-<h1>@Model.Ticket.Subject</h1>
+@{
+    var t = Model.Ticket;
+}
 
-<p><b>MessageId:</b> @Model.Ticket.MessageId</p>
-<p><b>From:</b> @Model.Ticket.From</p>
-<p><b>ReceivedAt:</b> @Model.Ticket.ReceivedAt</p>
+<h1>@t.Subject</h1>
 
-<p><b>Category:</b> @Model.Ticket.Category</p>
-<p><b>Severity:</b> @Model.Ticket.Severity</p>
-<p><b>Confidence:</b> @Model.Ticket.Confidence</p>
+<p style="margin-top:6px;">
+    <a href="/Tickets">← Back to list</a>
+</p>
 
-<p><b>Status:</b> @Model.Ticket.Status (@Model.Ticket.StatusReason)</p>
+<hr />
+
+<h3>Summary</h3>
+<p style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+    @(!string.IsNullOrWhiteSpace(t.Summary) ? t.Summary : "(no summary)")
+</p>
+
+@if (t.Entities is not null && t.Entities.Any())
+{
+    <h3>Entities</h3>
+    <div style="margin-bottom:10px;">
+        @foreach (var e in t.Entities)
+        {
+            <span style="display:inline-block; padding:4px 8px; margin:4px; border:1px solid #ccc; border-radius:999px;">
+                @e
+            </span>
+        }
+    </div>
+}
+
+<h3>Classification</h3>
+<ul>
+    <li><b>Category:</b> @t.Category</li>
+    <li><b>Severity:</b> @t.Severity</li>
+    <li><b>Confidence:</b> @t.Confidence</li>
+    <li><b>NeedsHumanReview:</b> @t.NeedsHumanReview</li>
+    <li><b>Status:</b> @t.Status (@t.StatusReason)</li>
+</ul>
+
+<h3>Audit</h3>
+<ul>
+    <li><b>MessageId:</b> @t.MessageId</li>
+    <li><b>CorrelationId:</b> @t.CorrelationId</li>
+    <li><b>ReceivedAt:</b> @t.ReceivedAt</li>
+    <li><b>ProcessedAtUtc:</b> @t.ProcessedAtUtc</li>
+    <li><b>Classifier:</b> @t.ClassifierName v@t.ClassifierVersion</li>
+</ul>
 
 <h3>Body</h3>
-<pre style="white-space:pre-wrap">@Model.Ticket.Body</pre>
+<pre style="white-space:pre-wrap; padding:10px; border:1px solid #eee; border-radius:6px;">@t.Body</pre>
 
-<h3>Raw Message</h3>
+<h3>Raw message</h3>
 <details>
-    <summary>show</summary>
-    <pre style="white-space:pre-wrap">@Model.Ticket.RawMessage</pre>
+    <summary>Show raw payload</summary>
+    <pre style="white-space:pre-wrap; padding:10px; border:1px solid #eee; border-radius:6px;">@t.RawMessage</pre>
 </details>
