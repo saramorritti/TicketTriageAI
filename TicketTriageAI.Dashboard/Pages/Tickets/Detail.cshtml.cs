@@ -13,15 +13,18 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
 
         public TicketDocument? Ticket { get; private set; }
 
-        public async Task<IActionResult> OnGetAsync(string messageId)
+        public async Task<IActionResult> OnGetAsync(string messageId, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(messageId))
                 return BadRequest();
 
-            Ticket = await _repo.GetAsync(messageId);
-            if (Ticket is null) return NotFound();
+            Ticket = await _repo.GetAsync(messageId, ct);
+
+            if (Ticket is null)
+                return NotFound();
 
             return Page();
         }
     }
 }
+

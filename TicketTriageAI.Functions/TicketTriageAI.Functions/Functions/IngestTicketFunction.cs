@@ -64,13 +64,33 @@ public class IngestTicketFunction
                 return BadRequest(ApiMessages.ValidationFailed, correlationId, errors);
             }
 
-            await _pipeline.ExecuteAsync(request, correlationId);
+            var published = await _pipeline.ExecuteAsync(request, correlationId);
+
+            if (!published)
+            {
+                _logger.LogInformation(
+                    "Duplicate ticket suppressed. MessageId={MessageId}",
+                    request.MessageId);
+
+                return Accepted(new
+                {
+                    message = "Duplicate suppressed",
+                    correlationId,
+                    messageId = request.MessageId
+                });
+            }
 
             _logger.LogInformation(
-                "Ticket ingest accepted and enqueued. MessageId: {MessageId}",
+                "Ticket ingest accepted and enqueued. MessageId={MessageId}",
                 request.MessageId);
 
-            return Accepted(request.MessageId, correlationId);
+            return Accepted(new
+            {
+                message = "Ticket accepted for processing",
+                correlationId,
+                messageId = request.MessageId
+            });
+
         }
     }
 
@@ -112,5 +132,14 @@ public class IngestTicketFunction
             StatusCode = StatusCodes.Status202Accepted
         };
     }
+
+    private static ObjectResult Accepted(object payload)
+    {
+        return new ObjectResult(payload)
+        {
+            StatusCode = StatusCodes.Status202Accepted
+        };
+    }
+
     #endregion
 }
