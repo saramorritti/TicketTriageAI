@@ -106,6 +106,7 @@ namespace TicketTriageAI.Core.Services.Processing
                 var doc = _docFactory.Create(ticket, result, meta);
                 doc.Status = status;
                 doc.StatusReason = reason;
+                doc.CleanBody = cleanedBody;
 
                 await _repository.UpsertAsync(doc, ct);
 

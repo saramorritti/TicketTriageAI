@@ -97,6 +97,11 @@ namespace TicketTriageAI.Core.Models
         [JsonPropertyName("rawMessage")]
         public string RawMessage { get; init; } = default!;
 
+        [JsonProperty("cleanBody")]
+        [JsonPropertyName("cleanBody")]
+        public string? CleanBody { get; set; }
+
+
         // ========= STATE MACHINE =========
 
         [JsonProperty("status")]
