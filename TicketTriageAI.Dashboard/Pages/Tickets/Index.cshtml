@@ -45,3 +45,13 @@
         }
     </tbody>
 </table>
+@if (!string.IsNullOrWhiteSpace(Model.NextContinuationToken))
+{
+    <a asp-page="./Index"
+       asp-route-q="@Model.Q"
+       asp-route-status="@Model.Status"
+       asp-route-continuationToken="@Model.NextContinuationToken">
+        Next →
+    </a>
+}
+

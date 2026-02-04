@@ -54,6 +54,18 @@
     <li><b>ProcessedAtUtc:</b> @t.ProcessedAtUtc</li>
     <li><b>Classifier:</b> @t.ClassifierName v@t.ClassifierVersion</li>
 </ul>
+<h3>Clean body</h3>
+@if (!string.IsNullOrWhiteSpace(t.CleanBody))
+{
+    <details>
+        <summary>Show cleaned text</summary>
+        <pre style="white-space:pre-wrap; padding:10px; border:1px solid #eee; border-radius:6px;">@t.CleanBody</pre>
+    </details>
+}
+else
+{
+    <p>(no cleaned body)</p>
+}
 
 <h3>Body</h3>
 <pre style="white-space:pre-wrap; padding:10px; border:1px solid #eee; border-radius:6px;">@t.Body</pre>

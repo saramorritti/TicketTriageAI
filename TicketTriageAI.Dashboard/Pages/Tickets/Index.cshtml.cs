@@ -17,20 +17,28 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
         public string? Q { get; set; }
         public TicketStatus? Status { get; set; }
         public int Page { get; set; } = 1;
+        public string? ContinuationToken { get; set; }
+        public string? NextContinuationToken { get; private set; }
 
-        public async Task OnGetAsync(string? q, TicketStatus? status, int page = 1)
+
+        public async Task OnGetAsync(string? q, TicketStatus? status, string? continuationToken = null)
         {
             Q = q;
             Status = status;
-            Page = Math.Max(1, page);
+            ContinuationToken = continuationToken;
 
-            Items = await _repo.SearchAsync(new TicketSearchQuery
-            {
-                Q = Q,
-                Status = Status,
-                Page = Page,
-                PageSize = 25
-            });
+            var result = await _repo.SearchAsync(
+                new TicketSearchQuery
+                {
+                    Q = Q,
+                    Status = Status,
+                    PageSize = 25
+                },
+                ContinuationToken);
+
+            Items = result.Items;
+            NextContinuationToken = result.ContinuationToken;
         }
+
     }
 }

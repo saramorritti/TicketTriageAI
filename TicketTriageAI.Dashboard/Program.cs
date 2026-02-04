@@ -40,4 +40,14 @@ app.UseRouting();
 
 app.MapRazorPages();
 
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        status = "ok",
+        service = "TicketTriageAI.Dashboard",
+        time = DateTime.UtcNow
+    });
+});
+
 app.Run();

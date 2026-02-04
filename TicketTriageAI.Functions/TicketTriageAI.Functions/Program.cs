@@ -12,8 +12,10 @@ using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Core.Services.Messaging;
+using TicketTriageAI.Core.Services.Notifications;
 using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Core.Services.Processing.AI;
+using TicketTriageAI.Core.Services.Text;
 using TicketTriageAI.Core.Validators;
 
 
@@ -83,7 +85,7 @@ builder.Services.AddSingleton<ChatClient>(_ =>
 builder.Services.AddSingleton<ITicketIngestedFactory, TicketIngestedFactory>();
 builder.Services.AddSingleton<ITicketDocumentFactory, TicketDocumentFactory>();
 
-builder.Services.AddScoped<ITextNormalizer, DefaultTextNormalizer>();
+builder.Services.AddScoped<ITextNormalizer, EmailTextNormalizer>();
 
 builder.Services.AddSingleton<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
 builder.Services.AddScoped<ITicketRepository, CosmosTicketRepository>();
@@ -97,8 +99,8 @@ builder.Services.AddScoped<ITicketIngestService, TicketIngestService>();
 //builder.Services.AddScoped<ITicketClassifier, FakeTicketClassifier>();
 builder.Services.AddScoped<ITicketClassifier, AzureOpenAITicketClassifier>();
 
-
-
+builder.Services.Configure<NotificationOptions>(builder.Configuration.GetSection("Notifications"));
+builder.Services.AddSingleton<ITicketNotificationService, LoggingTicketNotificationService>();
 
 // Application Insights isn't enabled by default. See https://aka.ms/AAt8mw4.
 // builder.Services

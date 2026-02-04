@@ -5,7 +5,7 @@ namespace TicketTriageAI.Dashboard.Repositories
 {
     public interface ITicketReadRepository
     {
-        Task<IReadOnlyList<TicketListItem>> SearchAsync(TicketSearchQuery query, CancellationToken ct = default);
+        Task<PagedResult<TicketListItem>> SearchAsync(TicketSearchQuery query, string? continuationToken, CancellationToken ct = default);
         Task<TicketDocument?> GetAsync(string messageId, CancellationToken ct = default);
     }
 }
