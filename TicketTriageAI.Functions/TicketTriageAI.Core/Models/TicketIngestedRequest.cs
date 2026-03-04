@@ -9,7 +9,6 @@ namespace TicketTriageAI.Core.Models
     public sealed class TicketIngestedRequest
     {
         //rappresenta ciò che arriva dall’esterno (HTTP/Logic App). Può cambiare nel tempo.
-        public string MessageId { get; init; } = default!;
         public string From { get; init; } = default!;
         public string Subject { get; init; } = default!;
         public string Body { get; init; } = default!;

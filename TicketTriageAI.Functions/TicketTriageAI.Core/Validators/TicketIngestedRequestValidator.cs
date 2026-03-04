@@ -15,7 +15,6 @@ namespace TicketTriageAI.Core.Validators
 
         public TicketIngestedRequestValidator()
         {
-            RuleFor(x => x.MessageId).NotEmpty();
             RuleFor(x => x.From).NotEmpty();
             RuleFor(x => x.Subject).NotEmpty();
             RuleFor(x => x.Body).NotEmpty();
