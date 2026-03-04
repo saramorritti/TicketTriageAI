@@ -1,6 +1,7 @@
 using Azure.Messaging.ServiceBus;
 using FluentValidation;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -100,11 +101,10 @@ builder.Services.AddScoped<ITicketIngestService, TicketIngestService>();
 builder.Services.AddScoped<ITicketClassifier, AzureOpenAITicketClassifier>();
 
 builder.Services.Configure<NotificationOptions>(builder.Configuration.GetSection("Notifications"));
-builder.Services.AddSingleton<ITicketNotificationService, LoggingTicketNotificationService>();
+//builder.Services.AddSingleton<ITicketNotificationService, LoggingTicketNotificationService>();
+builder.Services.AddScoped<ITicketNotificationService, ServiceBusTicketNotificationService>();
 
-// Application Insights isn't enabled by default. See https://aka.ms/AAt8mw4.
-// builder.Services
-//     .AddApplicationInsightsTelemetryWorkerService()
-//     .ConfigureFunctionsApplicationInsights();
+builder.Services.AddApplicationInsightsTelemetryWorkerService();
+builder.Services.ConfigureFunctionsApplicationInsights();
 
 builder.Build().Run();
