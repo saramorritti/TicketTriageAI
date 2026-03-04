@@ -9,6 +9,7 @@ namespace TicketTriageAI.Core.Configuration
 
     public sealed class NotificationOptions
     {
-        public string DashboardBaseUrl { get; set; } = "https://localhost:7161";
+        public string DashboardBaseUrl { get; set; } = "";
+        public string NotifyQueueName { get; set; } = "tickets-notify";
     }
 }
