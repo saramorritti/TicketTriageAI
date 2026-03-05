@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
+using TicketTriageAI.Core.Services.Factories;
 
 namespace TicketTriageAI.Core.Services.Processing
 {
@@ -13,5 +14,6 @@ namespace TicketTriageAI.Core.Services.Processing
         // Permette di sostituire facilmente implementazioni fake o AI reali senza cambiare la pipeline.
 
         Task<TicketTriageResult> ClassifyAsync(TicketIngested ticket, CancellationToken ct = default);
+        ClassifierMetadata GetMetadata();
     }
 }

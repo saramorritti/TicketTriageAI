@@ -23,7 +23,7 @@ namespace TicketTriageAI.Core.Services.Processing
         private readonly ITicketDocumentFactory _docFactory;
         private readonly ITicketStatusRepository _statusRepo;
         private readonly ILogger<TicketProcessingPipeline> _logger;
-        private readonly ITextNormalizer _normalizer;
+        private readonly ITicketNormalizationFactory _normalizationFactory;
 
         private readonly ITicketNotificationService _notifier;
         private readonly NotificationOptions _notificationOptions;
@@ -40,14 +40,14 @@ namespace TicketTriageAI.Core.Services.Processing
             IOptions<NotificationOptions> notificationOptions,
             IOptions<TicketProcessingOptions> options,
             ILogger<TicketProcessingPipeline> logger,
-            ITextNormalizer normalizer)
+            ITicketNormalizationFactory normalizationFactory)
         {
             _classifier = classifier;
             _repository = repository;
             _docFactory = docFactory;
             _statusRepo = statusRepo;
             _logger = logger;
-            _normalizer = normalizer;
+            _normalizationFactory = normalizationFactory;
             _notifier = notifier;
             _notificationOptions = notificationOptions.Value;
 
@@ -60,82 +60,106 @@ namespace TicketTriageAI.Core.Services.Processing
         {
             try
             {
-                await _statusRepo.PatchProcessingAsync(ticket.MessageId, ct);
+                await PatchProcessingAsync(ticket, ct);
 
-                var cleanedBody = _normalizer.Normalize(ticket.Body ?? string.Empty);
+                var (normalizedTicket, cleanBody) = Normalize(ticket);
 
-                var normalizedTicket = new TicketIngested
-                {
-                    MessageId = ticket.MessageId,
-                    CorrelationId = ticket.CorrelationId,
-                    From = ticket.From,
-                    Subject = ticket.Subject,
-                    Body = cleanedBody,
-                    ReceivedAt = ticket.ReceivedAt,
-                    Source = ticket.Source,
-                    RawMessage = ticket.RawMessage
-                };
+                var result = await ClassifyAsync(normalizedTicket, ct);
 
-                var result = await _classifier.ClassifyAsync(normalizedTicket, ct);
-                _logger.LogInformation(
-                    "Body normalized. OriginalLen={Orig} CleanLen={Clean}", 
-                    ticket.Body?.Length ?? 0, cleanedBody.Length);
+                var (status, reason) = ApplyReviewPolicy(result);
 
+                var meta = _classifier.GetMetadata(); // vedi step 3/4 sotto
 
-                _logger.LogInformation(
-                    "Triage result. Category={Category} Severity={Severity} Confidence={Confidence} NeedsHumanReview={NeedsHumanReview}",
-                    result.Category, result.Severity, result.Confidence, result.NeedsHumanReview);
+                var doc = CreateDocument(ticket, result, meta, status, reason, cleanBody);
 
-                var meta = new ClassifierMetadata(
-                    Name: _classifier.GetType().Name,
-                    Version: "1",
-                    Model: null);
-
-                // ---- Review policy (qui risolvi l’incoerenza) ----
-                var lowConfidence = result.Confidence < _confidenceThreshold;
-                var isP1 = string.Equals(result.Severity, "P1", StringComparison.OrdinalIgnoreCase);
-
-                var needsReview =
-                    result.NeedsHumanReview
-                    || lowConfidence
-                    || (_forceReviewOnP1 && isP1);
-
-                var status = needsReview ? TicketStatus.NeedsReview : TicketStatus.Processed;
-
-                string? reason = null;
-                if (needsReview)
-                {
-                    if (lowConfidence) reason = TicketStatusReason.LowConfidence;
-                    else if (_forceReviewOnP1 && isP1) reason = TicketStatusReason.SeverityCritical; 
-                    else reason = TicketStatusReason.ModelFlagged;
-                }
-
-                var doc = _docFactory.Create(ticket, result, meta);
-                doc.Status = status;
-                doc.StatusReason = reason;
-                doc.CleanBody = cleanedBody;
-
-                await _repository.UpsertAsync(doc, ct);
+                await PersistAsync(doc, ct);
 
                 if (status == TicketStatus.NeedsReview)
                 {
-                    await _notifier.NotifyNeedsReviewAsync(doc, _notificationOptions.DashboardBaseUrl, ct);
-
-                    // qui niente ! : se reason fosse null, metti un fallback sicuro
-                    await _statusRepo.PatchNeedsReviewAsync(ticket.MessageId, reason ?? TicketStatusReason.ModelFlagged, ct);
+                    await NotifyAsync(doc, ct);
+                    await PatchNeedsReviewAsync(ticket, reason, ct);
                 }
                 else
                 {
-                    await _statusRepo.PatchProcessedAsync(ticket.MessageId, ct);
+                    await PatchProcessedAsync(ticket, ct);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Processing failed. MessageId={MessageId}", ticket.MessageId);
-
                 await _statusRepo.PatchFailedAsync(ticket.MessageId, TicketStatusReason.Exception, ct);
                 throw;
             }
         }
+
+        private Task PatchProcessingAsync(TicketIngested ticket, CancellationToken ct)
+    => _statusRepo.PatchProcessingAsync(ticket.MessageId, ct);
+
+        private (TicketIngested Normalized, string CleanBody) Normalize(TicketIngested ticket)
+        {
+            var (normalized, cleanBody) = _normalizationFactory.CreateNormalized(ticket);
+
+            _logger.LogInformation(
+                "Body normalized. OriginalLen={Orig} CleanLen={Clean}",
+                ticket.Body?.Length ?? 0, cleanBody.Length);
+
+            return (normalized, cleanBody);
+        }
+
+        private async Task<TicketTriageResult> ClassifyAsync(TicketIngested normalizedTicket, CancellationToken ct)
+        {
+            var result = await _classifier.ClassifyAsync(normalizedTicket, ct);
+
+            _logger.LogInformation(
+                "Triage result. Category={Category} Severity={Severity} Confidence={Confidence} NeedsHumanReview={NeedsHumanReview}",
+                result.Category, result.Severity, result.Confidence, result.NeedsHumanReview);
+
+            return result;
+        }
+
+        private (TicketStatus Status, string? Reason) ApplyReviewPolicy(TicketTriageResult result)
+        {
+            var lowConfidence = result.Confidence < _confidenceThreshold;
+            var isP1 = string.Equals(result.Severity, "P1", StringComparison.OrdinalIgnoreCase);
+
+            var needsReview =
+                result.NeedsHumanReview
+                || lowConfidence
+                || (_forceReviewOnP1 && isP1);
+
+            if (!needsReview)
+                return (TicketStatus.Processed, null);
+
+            if (lowConfidence) return (TicketStatus.NeedsReview, TicketStatusReason.LowConfidence);
+            if (_forceReviewOnP1 && isP1) return (TicketStatus.NeedsReview, TicketStatusReason.SeverityCritical);
+            return (TicketStatus.NeedsReview, TicketStatusReason.ModelFlagged);
+        }
+
+        private TicketDocument CreateDocument(
+            TicketIngested originalTicket,
+            TicketTriageResult result,
+            ClassifierMetadata meta,
+            TicketStatus status,
+            string? reason,
+            string cleanBody)
+        {
+            var doc = _docFactory.Create(originalTicket, result, meta);
+            doc.Status = status;
+            doc.StatusReason = reason;
+            doc.CleanBody = cleanBody;
+            return doc;
+        }
+
+        private Task PersistAsync(TicketDocument doc, CancellationToken ct)
+            => _repository.UpsertAsync(doc, ct);
+
+        private Task NotifyAsync(TicketDocument doc, CancellationToken ct)
+            => _notifier.NotifyNeedsReviewAsync(doc, _notificationOptions.DashboardBaseUrl, ct);
+
+        private Task PatchNeedsReviewAsync(TicketIngested ticket, string? reason, CancellationToken ct)
+            => _statusRepo.PatchNeedsReviewAsync(ticket.MessageId, reason ?? TicketStatusReason.ModelFlagged, ct);
+
+        private Task PatchProcessedAsync(TicketIngested ticket, CancellationToken ct)
+            => _statusRepo.PatchProcessedAsync(ticket.MessageId, ct);
     }
 }
