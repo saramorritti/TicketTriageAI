@@ -9,6 +9,7 @@ using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Messaging;
 using TicketTriageAI.Core.Services.Processing;
+using System.Security.Cryptography;
 
 namespace TicketTriageAI.Core.Services.Ingest
 {
@@ -33,10 +34,12 @@ namespace TicketTriageAI.Core.Services.Ingest
         public async Task<bool> ExecuteAsync(
             TicketIngestedRequest request,
             string correlationId,
+            string? idempotencyKey = null,
             CancellationToken ct = default)
         {
-            var messageId = Guid.NewGuid().ToString("N");
-
+            var messageId = !string.IsNullOrWhiteSpace(idempotencyKey)
+                ? idempotencyKey.Trim()
+                : ComputeDedupeKey(request, correlationId);
             if (await _statusRepository.ExistsAsync(messageId, ct))
             {
                 return false;
@@ -48,6 +51,24 @@ namespace TicketTriageAI.Core.Services.Ingest
             await _publisher.PublishAsync(ticketEvent, ct);
 
             return true;
+        }
+        private static string ComputeDedupeKey(TicketIngestedRequest request, string correlationId)
+        {
+            var received = request.ReceivedAt; 
+
+
+            var canonical = string.Join("|",
+                request.From?.Trim().ToLowerInvariant(),
+                request.Subject?.Trim().ToLowerInvariant(),
+                request.Body?.Trim(),
+                request.Source?.Trim().ToLowerInvariant(),
+                request.ReceivedAt.ToUniversalTime().ToString("O"));
+
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(canonical);
+            var hash = sha.ComputeHash(bytes);
+
+            return Convert.ToHexString(hash).ToLowerInvariant();
         }
 
 

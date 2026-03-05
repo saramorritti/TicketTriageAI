@@ -67,7 +67,7 @@ builder.Services.AddSingleton(_ =>
     return new CosmosClient(cs);
 });
 
-builder.Services.AddKeyedSingleton<ServiceBusSender>("ingest", sp =>
+builder.Services.AddKeyedSingleton<ServiceBusSender>("ingest", (sp, _) =>
 {
     var client = sp.GetRequiredService<ServiceBusClient>();
     var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ServiceBusOptions>>().Value;
@@ -78,7 +78,7 @@ builder.Services.AddKeyedSingleton<ServiceBusSender>("ingest", sp =>
     return client.CreateSender(opt.QueueName);
 });
 
-builder.Services.AddKeyedSingleton<ServiceBusSender>("notify", sp =>
+builder.Services.AddKeyedSingleton<ServiceBusSender>("notify", (sp, _) =>
 {
     var client = sp.GetRequiredService<ServiceBusClient>();
     var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<NotificationOptions>>().Value;
