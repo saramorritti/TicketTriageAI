@@ -2,6 +2,7 @@
 using OpenAI.Chat;
 using System.Globalization;
 using System.Text.Json;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 
 namespace TicketTriageAI.Core.Services.Processing.AI
@@ -10,19 +11,12 @@ namespace TicketTriageAI.Core.Services.Processing.AI
     {
         private readonly ChatClient _chat;
         private readonly double _confidenceThreshold;
+        private readonly AzureOpenAIClassifierOptions _opts;
 
-        public AzureOpenAITicketClassifier(ChatClient chatClient, IConfiguration configuration)
+        public AzureOpenAITicketClassifier(ChatClient chatClient, Microsoft.Extensions.Options.IOptions<AzureOpenAIClassifierOptions> opts)
         {
             _chat = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
-
-            var thresholdRaw = configuration["AzureOpenAIConfidenceThreshold"] ?? "0.7";
-            _confidenceThreshold = double.TryParse(
-                thresholdRaw,
-                NumberStyles.Any,
-                CultureInfo.InvariantCulture,
-                out var parsed)
-                ? parsed
-                : 0.7;
+            _opts = opts.Value;
         }
 
         public async Task<TicketTriageResult> ClassifyAsync(
@@ -32,16 +26,7 @@ namespace TicketTriageAI.Core.Services.Processing.AI
 
             if (ticket is null) throw new ArgumentNullException(nameof(ticket));
 
-            var systemPrompt =
-                "You are a strict ticket triage classifier. " +
-                "Return ONLY a valid JSON object with EXACT keys: " +
-                "category (billing|support|technical|other), " +
-                "severity (P1|P2|P3), " +
-                "confidence (0..1), " +
-                "needsHumanReview (true|false), " +
-                "summary (string, max 200 chars), " +
-                "entities (array of strings). " +
-                "No markdown. No explanations. No extra text.";
+            var systemPrompt = _opts.SystemPrompt;
 
             var userPrompt =
                 $"Subject: {ticket.Subject}\n" +
@@ -52,8 +37,8 @@ namespace TicketTriageAI.Core.Services.Processing.AI
 
             var options = new ChatCompletionOptions
             {
-                Temperature = 0.0f,
-                MaxOutputTokenCount = 350
+                Temperature = _opts.Temperature,
+                MaxOutputTokenCount = _opts.MaxOutputTokenCount
             };
 
             ChatCompletion completion = await _chat.CompleteChatAsync(

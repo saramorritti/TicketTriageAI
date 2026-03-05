@@ -42,6 +42,11 @@ builder.Services
     .Bind(builder.Configuration.GetSection("Processing"))
     .ValidateOnStart();
 
+builder.Services
+    .AddOptions<AzureOpenAIClassifierOptions>()
+    .Bind(builder.Configuration.GetSection("AzureOpenAI:Classifier"))
+    .ValidateOnStart();
+
 
 builder.Services.AddSingleton(_ =>
     new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBusConnection")));

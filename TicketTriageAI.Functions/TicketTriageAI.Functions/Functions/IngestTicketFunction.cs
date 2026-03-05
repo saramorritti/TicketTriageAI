@@ -8,6 +8,7 @@ using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Common.Http;
+using TicketTriageAI.Common.Logging;
 
 namespace TicketTriageAI.Functions.Functions;
 
