@@ -8,6 +8,7 @@ using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Common.Http;
+using TicketTriageAI.Common.Logging;
 
 namespace TicketTriageAI.Functions.Functions;
 
@@ -56,8 +57,7 @@ public class IngestTicketFunction
                 });
 
                 _logger.LogWarning(
-                    "Validation failed for ingest. MessageId: {MessageId}. Errors: {Errors}",
-                    request.MessageId,
+                    "Validation failed for ingest. Errors: {Errors}",
                     errors);
 
                 return BadRequest(ApiMessages.ValidationFailed, correlationId, errors);
@@ -68,26 +68,24 @@ public class IngestTicketFunction
             if (!published)
             {
                 _logger.LogInformation(
-                    "Duplicate ticket suppressed. MessageId={MessageId}",
-                    request.MessageId);
+                    "Duplicate ticket suppressed."
+                    );
 
                 return Accepted(new
                 {
                     message = "Duplicate suppressed",
                     correlationId,
-                    messageId = request.MessageId
                 });
             }
 
             _logger.LogInformation(
-                "Ticket ingest accepted and enqueued. MessageId={MessageId}",
-                request.MessageId);
+                "Ticket ingest accepted and enqueued"
+                );
 
             return Accepted(new
             {
                 message = "Ticket accepted for processing",
                 correlationId,
-                messageId = request.MessageId
             });
 
         }
@@ -117,19 +115,6 @@ public class IngestTicketFunction
             correlationId,
             errors
         });
-    }
-
-    private static ObjectResult Accepted(string messageId, string correlationId)
-    {
-        return new ObjectResult(new
-        {
-            message = ApiMessages.Accepted,
-            correlationId,
-            messageId
-        })
-        {
-            StatusCode = StatusCodes.Status202Accepted
-        };
     }
 
     private static ObjectResult Accepted(object payload)

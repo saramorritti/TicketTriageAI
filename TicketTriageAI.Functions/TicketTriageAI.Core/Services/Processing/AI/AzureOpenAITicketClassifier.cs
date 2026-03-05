@@ -1,14 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
-using System;
 using System.Globalization;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Core.Services.Processing;
-using TicketTriageAI.Core.Services.Text;
 
 namespace TicketTriageAI.Core.Services.Processing.AI
 {
@@ -16,21 +11,12 @@ namespace TicketTriageAI.Core.Services.Processing.AI
     {
         private readonly ChatClient _chat;
         private readonly double _confidenceThreshold;
-        private readonly ITextNormalizer _textNormalizer;
+        private readonly AzureOpenAIClassifierOptions _opts;
 
-        public AzureOpenAITicketClassifier(ChatClient chatClient, IConfiguration configuration, ITextNormalizer textNormalizer)
+        public AzureOpenAITicketClassifier(ChatClient chatClient, Microsoft.Extensions.Options.IOptions<AzureOpenAIClassifierOptions> opts)
         {
             _chat = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
-            _textNormalizer = textNormalizer;
-
-            var thresholdRaw = configuration["AzureOpenAIConfidenceThreshold"] ?? "0.7";
-            _confidenceThreshold = double.TryParse(
-                thresholdRaw,
-                NumberStyles.Any,
-                CultureInfo.InvariantCulture,
-                out var parsed)
-                ? parsed
-                : 0.7;
+            _opts = opts.Value;
         }
 
         public async Task<TicketTriageResult> ClassifyAsync(
@@ -40,30 +26,19 @@ namespace TicketTriageAI.Core.Services.Processing.AI
 
             if (ticket is null) throw new ArgumentNullException(nameof(ticket));
 
-            var systemPrompt =
-                "You are a strict ticket triage classifier. " +
-                "Return ONLY a valid JSON object with EXACT keys: " +
-                "category (billing|support|technical|other), " +
-                "severity (P1|P2|P3), " +
-                "confidence (0..1), " +
-                "needsHumanReview (true|false), " +
-                "summary (string, max 200 chars), " +
-                "entities (array of strings). " +
-                "No markdown. No explanations. No extra text.";
-
-            var cleanBody = _textNormalizer.Normalize(ticket.Body);
+            var systemPrompt = _opts.SystemPrompt;
 
             var userPrompt =
                 $"Subject: {ticket.Subject}\n" +
-                $"Body: {cleanBody}\n" +
+                $"Body: {ticket.Body}\n" +
                 $"From: {ticket.From}\n" +
                 $"Source: {ticket.Source}\n";
 
 
             var options = new ChatCompletionOptions
             {
-                Temperature = 0.0f,
-                MaxOutputTokenCount = 350
+                Temperature = _opts.Temperature,
+                MaxOutputTokenCount = _opts.MaxOutputTokenCount
             };
 
             ChatCompletion completion = await _chat.CompleteChatAsync(

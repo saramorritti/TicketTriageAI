@@ -9,6 +9,6 @@ namespace TicketTriageAI.Core.Services.Factories
 {
     public interface ITicketIngestedFactory
     {
-        TicketIngested Create(TicketIngestedRequest request, string correlationId, string? rawMessage = null);
+        TicketIngested Create(TicketIngestedRequest request, string correlationId, string messageId, string? rawMessage = null);
     }
 }

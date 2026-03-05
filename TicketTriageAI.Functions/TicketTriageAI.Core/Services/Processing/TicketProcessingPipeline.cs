@@ -62,7 +62,7 @@ namespace TicketTriageAI.Core.Services.Processing
             {
                 await _statusRepo.PatchProcessingAsync(ticket.MessageId, ct);
 
-                var cleanedBody = _normalizer.Normalize(ticket.Body);
+                var cleanedBody = _normalizer.Normalize(ticket.Body ?? string.Empty);
 
                 var normalizedTicket = new TicketIngested
                 {

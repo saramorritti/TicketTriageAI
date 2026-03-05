@@ -9,10 +9,9 @@ namespace TicketTriageAI.Core.Services.Factories
 {
     public sealed class TicketIngestedFactory : ITicketIngestedFactory
     {
-        public TicketIngested Create(TicketIngestedRequest request, string correlationId, string? rawMessage = null)
-            => new()
+        public TicketIngested Create(TicketIngestedRequest request, string correlationId, string messageId, string? rawMessage = null) => new()
             {
-                MessageId = request.MessageId,
+                MessageId = messageId,
                 CorrelationId = correlationId,
                 From = request.From,
                 Subject = request.Subject,

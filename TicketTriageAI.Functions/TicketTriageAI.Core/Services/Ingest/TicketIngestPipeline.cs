@@ -35,12 +35,14 @@ namespace TicketTriageAI.Core.Services.Ingest
             string correlationId,
             CancellationToken ct = default)
         {
-            if (await _statusRepository.ExistsAsync(request.MessageId, ct))
+            var messageId = Guid.NewGuid().ToString("N");
+
+            if (await _statusRepository.ExistsAsync(messageId, ct))
             {
                 return false;
             }
 
-            var ticketEvent = _factory.Create(request, correlationId);
+            var ticketEvent = _factory.Create(request, correlationId, messageId);
 
             await _statusRepository.PatchReceivedAsync(ticketEvent, ct);
             await _publisher.PublishAsync(ticketEvent, ct);

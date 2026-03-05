@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TicketTriageAI.Common.Http
+﻿namespace TicketTriageAI.Common.Http
 {
     public static class ApiMessages
     {
