@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using TicketTriageAI.Common.Serialization;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 
@@ -35,28 +36,28 @@ namespace TicketTriageAI.Core.Services.Notifications
             var baseUrl = string.IsNullOrWhiteSpace(dashboardUrl) ? _opts.DashboardBaseUrl : dashboardUrl;
             var link = $"{baseUrl.TrimEnd('/')}/Tickets/Detail?messageId={ticket.MessageId}";
 
-            var payload = new
+            var notification = new TicketNotificationMessage
             {
-                messageId = ticket.MessageId,
-                correlationId = ticket.CorrelationId,
-                from = ticket.From,
-                subject = ticket.Subject,
-                category = ticket.Category,
-                severity = ticket.Severity,
-                confidence = ticket.Confidence,
-                statusReason = ticket.StatusReason,
-                dashboardLink = link,
-                createdAtUtc = DateTimeOffset.UtcNow
+                MessageId = ticket.MessageId,
+                CorrelationId = ticket.CorrelationId,
+                From = ticket.From,
+                Subject = ticket.Subject,
+                Category = ticket.Category,
+                Severity = ticket.Severity,
+                Confidence = ticket.Confidence,
+                StatusReason = ticket.StatusReason,
+                DashboardLink = link,
+                CreatedAtUtc = DateTimeOffset.UtcNow
             };
 
-            var json = JsonSerializer.Serialize(payload);
+            var json = JsonSerializer.Serialize(notification, JsonDefaults.Options);
 
             var msg = new ServiceBusMessage(json)
             {
                 ContentType = "application/json",
                 Subject = "ticket.needsReview",
-                MessageId = ticket.MessageId,
-                CorrelationId = ticket.CorrelationId
+                MessageId = notification.MessageId,
+                CorrelationId = notification.CorrelationId
             };
 
             await _sender.SendMessageAsync(msg, ct);
