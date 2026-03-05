@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TicketTriageAI.Core.Models
 {
-    public sealed class TicketIngested
+    public sealed record TicketIngested
     {
         // Evento interno pubblicato su Service Bus: rappresenta un ticket “accettato” dal sistema.
         // È un contratto stabile, completo e tracciabile (CorrelationId) indipendente dal canale di ingresso.

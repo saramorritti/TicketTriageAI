@@ -2,14 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Messaging;
+using TicketTriageAI.Core.Services.Observability;
 using TicketTriageAI.Core.Services.Processing;
-using System.Security.Cryptography;
 
 namespace TicketTriageAI.Core.Services.Ingest
 {
@@ -22,12 +23,18 @@ namespace TicketTriageAI.Core.Services.Ingest
         private readonly ITicketQueuePublisher _publisher;
         private readonly ITicketIngestedFactory _factory;
         private readonly ITicketStatusRepository _statusRepository;
+        private readonly ITicketTelemetry _telemetry;
 
-        public TicketIngestPipeline(ITicketQueuePublisher publisher, ITicketIngestedFactory factory, ITicketStatusRepository statusRepository)
+        public TicketIngestPipeline(
+            ITicketQueuePublisher publisher,
+            ITicketIngestedFactory factory,
+            ITicketStatusRepository statusRepository,
+            ITicketTelemetry telemetry)
         {
             _publisher = publisher;
             _factory = factory;
             _statusRepository = statusRepository;
+            _telemetry = telemetry;
         }
 
 
@@ -49,6 +56,8 @@ namespace TicketTriageAI.Core.Services.Ingest
 
             await _statusRepository.PatchReceivedAsync(ticketEvent, ct);
             await _publisher.PublishAsync(ticketEvent, ct);
+
+            _telemetry.TicketIngested(ticketEvent);
 
             return true;
         }

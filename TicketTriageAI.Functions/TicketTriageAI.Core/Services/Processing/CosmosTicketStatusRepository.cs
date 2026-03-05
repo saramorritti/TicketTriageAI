@@ -1,14 +1,7 @@
-﻿using Microsoft.Azure.Amqp.Framing;
-using Microsoft.Azure.Cosmos;
+﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
@@ -61,9 +54,10 @@ namespace TicketTriageAI.Core.Services.Processing
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                _logger.LogWarning(ex,
-                    "PatchReceived: document not found, creating it. MessageId={MessageId}",
-                    ticket.MessageId);
+                _logger.LogInformation(
+                    "PatchReceived: document not found, creating it. MessageId={MessageId} ActivityId={ActivityId}",
+                    ticket.MessageId,
+                    ex.ActivityId);
 
                 var doc = _docFactory.CreateReceived(ticket);
                 await _container.CreateItemAsync(doc, new PartitionKey(doc.MessageId), cancellationToken: ct);
@@ -106,9 +100,9 @@ namespace TicketTriageAI.Core.Services.Processing
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                _logger.LogError(ex,
-                    "PatchStatus failed: document not found. MessageId={MessageId} Status={Status} Reason={Reason}",
-                    messageId, status, reason);
+                _logger.LogWarning(
+                    "PatchStatus: document not found. MessageId={MessageId} Status={Status} Reason={Reason} ActivityId={ActivityId}",
+                    messageId, status, reason, ex.ActivityId);
 
                 throw new InvalidOperationException(
                     $"TicketDocument not found for MessageId={messageId} while patching status {status}.",
