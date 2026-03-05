@@ -1,4 +1,5 @@
 ﻿using Azure.Messaging.ServiceBus;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -6,9 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using TicketTriageAI.Common.Serialization;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
-using TicketTriageAI.Common.Serialization;
 
 namespace TicketTriageAI.Core.Services.Messaging
 {
@@ -19,7 +20,7 @@ namespace TicketTriageAI.Core.Services.Messaging
 
         private readonly ServiceBusSender _sender;
 
-        public ServiceBusTicketQueuePublisher(ServiceBusSender sender)
+        public ServiceBusTicketQueuePublisher([FromKeyedServices("ingest")] ServiceBusSender sender)
         {
             _sender = sender;
         }
