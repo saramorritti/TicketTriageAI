@@ -116,6 +116,7 @@ builder.Services.AddSingleton<ITicketIngestedFactory, TicketIngestedFactory>();
 builder.Services.AddSingleton<ITicketDocumentFactory, TicketDocumentFactory>();
 
 builder.Services.AddScoped<ITextNormalizer, EmailTextNormalizer>();
+builder.Services.AddScoped<ITicketNormalizationFactory, TicketNormalizationFactory>();
 
 builder.Services.AddSingleton<ITicketQueuePublisher, ServiceBusTicketQueuePublisher>();
 builder.Services.AddScoped<ITicketRepository, CosmosTicketRepository>();

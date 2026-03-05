@@ -4,13 +4,13 @@ using System.Globalization;
 using System.Text.Json;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
+using TicketTriageAI.Core.Services.Factories;
 
 namespace TicketTriageAI.Core.Services.Processing.AI
 {
     public sealed class AzureOpenAITicketClassifier : ITicketClassifier
     {
         private readonly ChatClient _chat;
-        private readonly double _confidenceThreshold;
         private readonly AzureOpenAIClassifierOptions _opts;
 
         public AzureOpenAITicketClassifier(ChatClient chatClient, Microsoft.Extensions.Options.IOptions<AzureOpenAIClassifierOptions> opts)
@@ -68,9 +68,7 @@ namespace TicketTriageAI.Core.Services.Processing.AI
                 var confidence = root.TryGetProperty("confidence", out var cEl) ? cEl.GetDouble() : 0.0;
                 var needsHumanReview = root.TryGetProperty("needsHumanReview", out var nEl) && nEl.GetBoolean();
 
-                if (confidence < _confidenceThreshold)
-                    needsHumanReview = true;
-
+                
                 var summary = root.TryGetProperty("summary", out var sEl) ? sEl.GetString() : string.Empty;
 
                 var entities = Array.Empty<string>();
@@ -99,6 +97,10 @@ namespace TicketTriageAI.Core.Services.Processing.AI
             }
         }
 
+        public ClassifierMetadata GetMetadata() =>
+        new(Name: nameof(AzureOpenAITicketClassifier),
+            Version: _opts.ClassifierVersion,
+            Model: _opts.DeploymentName);
         private static TicketTriageResult Fallback() => new TicketTriageResult
         {
             Category = "other",
@@ -121,6 +123,8 @@ namespace TicketTriageAI.Core.Services.Processing.AI
             var v = (value ?? "P3").Trim().ToUpperInvariant();
             return v is "P1" or "P2" or "P3" ? v : "P3";
         }
+
+
     }
 }
 

@@ -21,5 +21,8 @@ namespace TicketTriageAI.Core.Configuration
             "summary (string, max 200 chars), " +
             "entities (array of strings). " +
             "No markdown. No explanations. No extra text.";
+
+        public string DeploymentName { get; init; } = "ticket-triage";
+        public string ClassifierVersion { get; init; } = "1";
     }
 }
