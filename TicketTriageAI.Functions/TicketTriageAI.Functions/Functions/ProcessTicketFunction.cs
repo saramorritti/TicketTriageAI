@@ -10,6 +10,7 @@ using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Common.Logging;
 using TicketTriageAI.Common.Serialization;
+using Azure.Messaging.ServiceBus;
 
 namespace TicketTriageAI.Functions.Functions
 {
@@ -28,9 +29,11 @@ namespace TicketTriageAI.Functions.Functions
 
         [Function("ProcessTicket")]
         public async Task RunAsync(
-            [ServiceBusTrigger("tickets-ingest", Connection = "ServiceBusConnection")] string message,
-            CancellationToken ct)
+        [ServiceBusTrigger("tickets-ingest", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage sbMessage,
+        FunctionContext context,
+        CancellationToken ct)
         {
+            var message = sbMessage.Body.ToString(); // JSON
             TicketIngested? ticket;
 
             try
@@ -39,27 +42,36 @@ namespace TicketTriageAI.Functions.Functions
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Invalid message payload (JSON). Raw={RawMessage}", message);
+                _logger.LogError(ex, "Invalid message payload (JSON). Raw={Raw}", SafeLog.SafePayload(message));
                 return;
             }
 
             if (ticket is null)
             {
-                _logger.LogError("Invalid message payload (null deserialization). Raw={RawMessage}", message);
+                _logger.LogError("Invalid message payload (null deserialization). Raw={Raw}", SafeLog.SafePayload(message));
                 return;
             }
 
-            // audit: conserva sempre il raw
+            // Ensure correlation/message id sempre valorizzati (init-only -> uso with)
+            var ensuredMessageId =
+                string.IsNullOrWhiteSpace(ticket.MessageId) ? (sbMessage.MessageId ?? ticket.MessageId) : ticket.MessageId;
+
+            var ensuredCorrelationId =
+                string.IsNullOrWhiteSpace(ticket.CorrelationId) ? (sbMessage.CorrelationId ?? context.InvocationId) : ticket.CorrelationId;
+
+            ticket = ticket with
+            {
+                MessageId = ensuredMessageId,
+                CorrelationId = ensuredCorrelationId
+            };
+
+            // RawMessage può restare settable
             ticket.RawMessage = message;
 
             using (_logger.BeginCorrelationScope(ticket.CorrelationId, ticket.MessageId))
             {
-                _logger.LogInformation(
-                    "Processing ticket. Subject: {Subject}",
-                    ticket.Subject);
-
+                _logger.LogInformation("Processing ticket. Subject: {Subject}", ticket.Subject);
                 await _pipeline.ExecuteAsync(ticket, ct);
-
                 _logger.LogInformation("Processed OK.");
             }
         }

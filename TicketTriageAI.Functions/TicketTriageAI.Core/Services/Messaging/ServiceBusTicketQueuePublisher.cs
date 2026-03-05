@@ -32,8 +32,13 @@ namespace TicketTriageAI.Core.Services.Messaging
             {
                 ContentType = "application/json",
                 MessageId = ticket.MessageId,
-                CorrelationId = ticket.CorrelationId
+                CorrelationId = ticket.CorrelationId,
+                Subject = "ticket_ingested"
             };
+
+            message.ApplicationProperties["correlationId"] = ticket.CorrelationId;
+            message.ApplicationProperties["messageId"] = ticket.MessageId;
+            message.ApplicationProperties["source"] = ticket.Source ?? "";
 
             return _sender.SendMessageAsync(message, ct);
         }

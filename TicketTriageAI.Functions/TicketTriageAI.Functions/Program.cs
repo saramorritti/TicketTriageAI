@@ -16,6 +16,7 @@ using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Ingest;
 using TicketTriageAI.Core.Services.Messaging;
 using TicketTriageAI.Core.Services.Notifications;
+using TicketTriageAI.Core.Services.Observability;
 using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Core.Services.Processing.AI;
 using TicketTriageAI.Core.Services.Text;
@@ -137,6 +138,7 @@ builder.Services.AddScoped<ITicketNotificationService, ServiceBusTicketNotificat
 
 builder.Services.AddApplicationInsightsTelemetryWorkerService();
 builder.Services.ConfigureFunctionsApplicationInsights();
+builder.Services.AddSingleton<ITicketTelemetry, AppInsightsTicketTelemetry>();
 
 builder.Services.AddSingleton<IFunctionsWorkerMiddleware, GlobalExceptionMiddleware>();
 

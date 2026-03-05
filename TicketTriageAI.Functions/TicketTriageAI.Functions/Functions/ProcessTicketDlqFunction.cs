@@ -1,16 +1,12 @@
-﻿using Microsoft.Azure.Functions.Worker;
+﻿using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+using TicketTriageAI.Common.Logging;
+using TicketTriageAI.Common.Serialization;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Processing;
-using TicketTriageAI.Common.Logging;
-using TicketTriageAI.Common.Serialization;
 
 namespace TicketTriageAI.Functions.Functions
 {
@@ -20,11 +16,10 @@ namespace TicketTriageAI.Functions.Functions
         private readonly ITicketRepository _repository;
         private readonly ITicketDocumentFactory _docFactory;
 
-
         public ProcessTicketDlqFunction(
-        ILogger<ProcessTicketDlqFunction> logger,
-        ITicketRepository repository,
-        ITicketDocumentFactory docFactory)
+            ILogger<ProcessTicketDlqFunction> logger,
+            ITicketRepository repository,
+            ITicketDocumentFactory docFactory)
         {
             _logger = logger;
             _repository = repository;
@@ -33,10 +28,12 @@ namespace TicketTriageAI.Functions.Functions
 
         [Function("ProcessTicketDlq")]
         public async Task RunAsync(
-            // DLQ path: <queue> + "/$DeadLetterQueue"
-            [ServiceBusTrigger("tickets-ingest/$DeadLetterQueue", Connection = "ServiceBusConnection")] string message,
-            CancellationToken ct)
+        [ServiceBusTrigger("tickets-ingest/$DeadLetterQueue", Connection = "ServiceBusConnection")]
+        ServiceBusReceivedMessage sbMessage,
+        FunctionContext context,
+        CancellationToken ct)
         {
+            var message = sbMessage.Body.ToString(); // JSON
             TicketIngested? ticket;
 
             try
@@ -45,21 +42,37 @@ namespace TicketTriageAI.Functions.Functions
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Invalid DLQ payload (JSON). Raw={RawMessage}", message);
+                _logger.LogError(ex, "Invalid DLQ payload (JSON). Raw={Raw}", SafeLog.SafePayload(message));
                 return;
             }
 
             if (ticket is null)
             {
-                _logger.LogError("Invalid DLQ payload (null deserialization). Raw={RawMessage}", message);
+                _logger.LogError("Invalid DLQ payload (null deserialization). Raw={Raw}", SafeLog.SafePayload(message));
                 return;
             }
+
+            // Ensure correlation/message id sempre valorizzati (init-only -> uso with)
+            var ensuredMessageId =
+                string.IsNullOrWhiteSpace(ticket.MessageId) ? (sbMessage.MessageId ?? ticket.MessageId) : ticket.MessageId;
+
+            var ensuredCorrelationId =
+                string.IsNullOrWhiteSpace(ticket.CorrelationId) ? (sbMessage.CorrelationId ?? context.InvocationId) : ticket.CorrelationId;
+
+            ticket = ticket with
+            {
+                MessageId = ensuredMessageId,
+                CorrelationId = ensuredCorrelationId
+            };
 
             ticket.RawMessage = message;
 
             using (_logger.BeginCorrelationScope(ticket.CorrelationId, ticket.MessageId))
             {
-                _logger.LogWarning("Message landed in DLQ. Marking as Failed. MessageId={MessageId}", ticket.MessageId);
+                _logger.LogWarning(
+                    "Message landed in DLQ. Marking as Failed. MessageId={MessageId} CorrelationId={CorrelationId}",
+                    ticket.MessageId,
+                    ticket.CorrelationId);
 
                 var failedDoc = _docFactory.CreateFailedFromDlq(ticket, TicketStatusReason.DeadLetter);
                 await _repository.UpsertAsync(failedDoc, ct);

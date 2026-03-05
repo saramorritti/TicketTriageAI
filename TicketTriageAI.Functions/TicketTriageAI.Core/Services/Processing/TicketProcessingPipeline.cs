@@ -9,6 +9,7 @@ using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Core.Services.Factories;
 using TicketTriageAI.Core.Services.Notifications;
+using TicketTriageAI.Core.Services.Observability;
 using TicketTriageAI.Core.Services.Text;
 
 namespace TicketTriageAI.Core.Services.Processing
@@ -31,6 +32,8 @@ namespace TicketTriageAI.Core.Services.Processing
         private readonly double _confidenceThreshold;
         private readonly bool _forceReviewOnP1;
 
+        private readonly ITicketTelemetry _telemetry;
+
         public TicketProcessingPipeline(
             ITicketClassifier classifier,
             ITicketRepository repository,
@@ -40,7 +43,8 @@ namespace TicketTriageAI.Core.Services.Processing
             IOptions<NotificationOptions> notificationOptions,
             IOptions<TicketProcessingOptions> options,
             ILogger<TicketProcessingPipeline> logger,
-            ITicketNormalizationFactory normalizationFactory)
+            ITicketNormalizationFactory normalizationFactory,
+            ITicketTelemetry telemtry)
         {
             _classifier = classifier;
             _repository = repository;
@@ -50,6 +54,7 @@ namespace TicketTriageAI.Core.Services.Processing
             _normalizationFactory = normalizationFactory;
             _notifier = notifier;
             _notificationOptions = notificationOptions.Value;
+            _telemetry = telemtry;
 
             var opt = options.Value;
             _confidenceThreshold = opt.ConfidenceThreshold;
@@ -78,16 +83,27 @@ namespace TicketTriageAI.Core.Services.Processing
                 {
                     await NotifyAsync(doc, ct);
                     await PatchNeedsReviewAsync(ticket, reason, ct);
+                    _telemetry.TicketNeedsReview(doc);
+
                 }
                 else
                 {
                     await PatchProcessedAsync(ticket, ct);
+                    _telemetry.TicketNeedsReview(doc);
+
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Processing failed. MessageId={MessageId}", ticket.MessageId);
                 await _statusRepo.PatchFailedAsync(ticket.MessageId, TicketStatusReason.Exception, ct);
+
+                _telemetry.TicketFailed(
+                    correlationId: ticket.CorrelationId,
+                    messageId: ticket.MessageId,
+                    reason: TicketStatusReason.Exception,
+                    ex: ex);
+
                 throw;
             }
         }
