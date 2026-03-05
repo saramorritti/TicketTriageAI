@@ -5,6 +5,7 @@ using TicketTriageAI.Dashboard.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
+builder.Services.AddProblemDetails();
 
 // Options Cosmos (riuso del Core)
 builder.Services
@@ -29,12 +30,57 @@ var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
     app.UseHsts();
+
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            var accept = context.Request.Headers.Accept.ToString();
+
+            // Browser -> pagina Razor
+            if (accept.Contains("text/html", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.Redirect("/Error");
+                return;
+            }
+
+            // Client non-HTML -> ProblemDetails
+            var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+            var ex = feature?.Error;
+
+            await Results.Problem(
+                title: "Unhandled exception",
+                detail: ex?.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            ).ExecuteAsync(context);
+        });
+    });
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+app.UseStatusCodePages(async context =>
+{
+    var http = context.HttpContext;
+    var path = http.Request.Path.Value ?? "";
+
+    if (path.StartsWith("/Error", StringComparison.OrdinalIgnoreCase))
+        return;
+
+    var accept = http.Request.Headers.Accept.ToString();
+    var statusCode = http.Response.StatusCode;
+
+    if (accept.Contains("text/html", StringComparison.OrdinalIgnoreCase))
+    {
+        http.Response.Redirect($"/Error?statusCode={statusCode}");
+        return;
+    }
+
+    await Results.Problem(title: "Request failed", statusCode: statusCode)
+        .ExecuteAsync(http);
+});
 
 app.UseRouting();
 

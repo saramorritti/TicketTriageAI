@@ -14,6 +14,15 @@
         }
     </select>
     <button type="submit">Search</button>
+    <select name="pageSize">
+        @{
+            var sizes = new[] { 10, 25, 50, 100 };
+        }
+        @foreach (var s in sizes)
+        {
+            <option value="@s" selected="@(Model.PageSize == s)">@s</option>
+        }
+    </select>
 </form>
 
 <table class="table">
@@ -50,6 +59,8 @@
     <a asp-page="./Index"
        asp-route-q="@Model.Q"
        asp-route-status="@Model.Status"
+       asp-route-pageSize="@Model.PageSize"
+       asp-route-page="@(Model.Page + 1)"
        asp-route-continuationToken="@Model.NextContinuationToken">
         Next →
     </a>

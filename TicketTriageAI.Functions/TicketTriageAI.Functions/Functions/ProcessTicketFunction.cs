@@ -64,7 +64,16 @@ namespace TicketTriageAI.Functions.Functions
                 MessageId = ensuredMessageId,
                 CorrelationId = ensuredCorrelationId
             };
-
+            // ReceivedAt = momento in cui il messaggio è stato enqueued su Service Bus
+            var receivedAtUtc = sbMessage.EnqueuedTime.UtcDateTime;
+            if (receivedAtUtc == default)
+                receivedAtUtc = DateTime.UtcNow;
+            _logger.LogInformation("ReceivedAt(from SB)={ReceivedAt:o}", ticket.ReceivedAt);
+            // TicketIngested è record init-only -> uso with
+            ticket = ticket with
+            {
+                ReceivedAt = receivedAtUtc
+            };
             // RawMessage può restare settable
             ticket.RawMessage = message;
 

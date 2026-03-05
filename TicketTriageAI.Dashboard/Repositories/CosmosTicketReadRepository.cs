@@ -1,11 +1,41 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using TicketTriageAI.Core.Configuration;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Dashboard.Models;
 
 namespace TicketTriageAI.Dashboard.Repositories
 {
+    internal sealed class TicketListRow
+    {
+        [JsonProperty("messageId")]
+        public string MessageId { get; set; } = default!;
+
+        [JsonProperty("receivedAt")]
+        public DateTime? ReceivedAt { get; set; }
+        [JsonProperty("sender")]
+        public string Sender { get; set; } = default!;
+
+        [JsonProperty("subject")]
+        public string Subject { get; set; } = default!;
+
+        [JsonProperty("category")]
+        public string? Category { get; set; }
+
+        [JsonProperty("severity")]
+        public string? Severity { get; set; }
+
+        [JsonProperty("confidence")]
+        public double Confidence { get; set; }
+
+        [JsonProperty("status")]
+        public int Status { get; set; }
+
+        [JsonProperty("statusReason")]
+        public string? StatusReason { get; set; }
+    }
+
     public sealed class CosmosTicketReadRepository : ITicketReadRepository
     {
         private readonly Container _container;
@@ -34,10 +64,11 @@ namespace TicketTriageAI.Dashboard.Repositories
         }
 
         public async Task<PagedResult<TicketListItem>> SearchAsync(
-    TicketSearchQuery query,
-    string? continuationToken,
-    CancellationToken ct = default)
+        TicketSearchQuery query,
+        string? continuationToken,
+        CancellationToken ct = default)
         {
+            if (query is null) throw new ArgumentNullException(nameof(query));
             var size = Math.Clamp(query.PageSize, 1, 100);
 
             var where = "WHERE 1=1";
@@ -76,10 +107,7 @@ namespace TicketTriageAI.Dashboard.Repositories
                 MaxItemCount = size
             };
 
-            using var it = _container.GetItemQueryIterator<dynamic>(
-                qd,
-                continuationToken,
-                options);
+            using var it = _container.GetItemQueryIterator<TicketListRow>(qd, continuationToken, options);
 
             var results = new List<TicketListItem>();
 
@@ -96,17 +124,18 @@ namespace TicketTriageAI.Dashboard.Repositories
 
             foreach (var row in pageRes)
             {
+                var received = row.ReceivedAt.HasValue ? NormalizeUtc(row.ReceivedAt.Value) : DateTime.MinValue;
                 results.Add(new TicketListItem
                 {
-                    MessageId = row.messageId,
-                    ReceivedAt = row.receivedAt,
-                    From = row.sender,
-                    Subject = row.subject,
-                    Category = row.category,
-                    Severity = row.severity,
-                    Confidence = row.confidence,
-                    Status = (TicketStatus)(int)row.status,
-                    StatusReason = row.statusReason
+                    MessageId = row.MessageId,
+                    ReceivedAt = received,
+                    From = row.Sender,
+                    Subject = row.Subject,
+                    Category = row.Category,
+                    Severity = row.Severity,
+                    Confidence = row.Confidence,
+                    Status = (TicketStatus)row.Status,
+                    StatusReason = row.StatusReason
                 });
             }
 
@@ -117,6 +146,13 @@ namespace TicketTriageAI.Dashboard.Repositories
             };
         }
 
+        private static DateTime NormalizeUtc(DateTime dt)
+        {
+            // Cosmos spesso deserializza DateTime con Kind=Unspecified.
+            if (dt.Kind == DateTimeKind.Unspecified)
+                return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
+            return dt.ToUniversalTime();
+        }
     }
 }

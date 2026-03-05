@@ -65,6 +65,15 @@ namespace TicketTriageAI.Functions.Functions
                 CorrelationId = ensuredCorrelationId
             };
 
+            var receivedAtUtc = sbMessage.EnqueuedTime.UtcDateTime;
+            if (receivedAtUtc == default)
+                receivedAtUtc = DateTime.UtcNow;
+
+            ticket = ticket with
+            {
+                ReceivedAt = receivedAtUtc
+            };
+
             ticket.RawMessage = message;
 
             using (_logger.BeginCorrelationScope(ticket.CorrelationId, ticket.MessageId))
