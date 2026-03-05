@@ -18,8 +18,7 @@ using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Core.Services.Processing.AI;
 using TicketTriageAI.Core.Services.Text;
 using TicketTriageAI.Core.Validators;
-
-
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -47,23 +46,48 @@ builder.Services
     .Bind(builder.Configuration.GetSection("AzureOpenAI:Classifier"))
     .ValidateOnStart();
 
+builder.Services
+    .AddOptions<NotificationOptions>()
+    .Bind(builder.Configuration.GetSection("Notifications"))
+    .ValidateOnStart();
 
 builder.Services.AddSingleton(_ =>
-    new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBusConnection")));
-builder.Services.AddSingleton(_ =>
-    new CosmosClient(Environment.GetEnvironmentVariable("CosmosDbConnection")));
+{
+    var cs = Environment.GetEnvironmentVariable("ServiceBusConnection");
+    if (string.IsNullOrWhiteSpace(cs))
+        throw new InvalidOperationException("Missing ServiceBusConnection in local.settings.json Values.");
+    return new ServiceBusClient(cs);
+});
 
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton(_ =>
+{
+    var cs = Environment.GetEnvironmentVariable("CosmosDbConnection");
+    if (string.IsNullOrWhiteSpace(cs))
+        throw new InvalidOperationException("Missing CosmosDbConnection in local.settings.json Values.");
+    return new CosmosClient(cs);
+});
+
+builder.Services.AddKeyedSingleton<ServiceBusSender>("ingest", sp =>
 {
     var client = sp.GetRequiredService<ServiceBusClient>();
     var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ServiceBusOptions>>().Value;
 
     if (string.IsNullOrWhiteSpace(opt.QueueName))
-        throw new InvalidOperationException("Missing ServiceBus:QueueName (set ServiceBus__QueueName in local.settings.json Values).");
+        throw new InvalidOperationException("Missing ServiceBus:QueueName (ServiceBus__QueueName).");
 
     return client.CreateSender(opt.QueueName);
 });
 
+builder.Services.AddKeyedSingleton<ServiceBusSender>("notify", sp =>
+{
+    var client = sp.GetRequiredService<ServiceBusClient>();
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<NotificationOptions>>().Value;
+
+    if (string.IsNullOrWhiteSpace(opts.NotifyQueueName))
+        throw new InvalidOperationException("Missing Notifications:NotifyQueueName (Notifications__NotifyQueueName).");
+
+    return client.CreateSender(opts.NotifyQueueName);
+});
 
 builder.Services.AddSingleton<ChatClient>(_ =>
 {
@@ -105,7 +129,6 @@ builder.Services.AddScoped<ITicketIngestService, TicketIngestService>();
 //builder.Services.AddScoped<ITicketClassifier, FakeTicketClassifier>();
 builder.Services.AddScoped<ITicketClassifier, AzureOpenAITicketClassifier>();
 
-builder.Services.Configure<NotificationOptions>(builder.Configuration.GetSection("Notifications"));
 //builder.Services.AddSingleton<ITicketNotificationService, LoggingTicketNotificationService>();
 builder.Services.AddScoped<ITicketNotificationService, ServiceBusTicketNotificationService>();
 

@@ -1,4 +1,5 @@
 ﻿using Azure.Messaging.ServiceBus;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -14,24 +15,22 @@ namespace TicketTriageAI.Core.Services.Notifications
 {
     public sealed class ServiceBusTicketNotificationService : ITicketNotificationService
     {
-        private readonly ServiceBusClient _client;
+        private readonly ServiceBusSender _sender;
         private readonly NotificationOptions _opts;
         private readonly ILogger<ServiceBusTicketNotificationService> _logger;
 
         public ServiceBusTicketNotificationService(
-            ServiceBusClient client,
+            [FromKeyedServices("notify")] ServiceBusSender sender,
             IOptions<NotificationOptions> opts,
             ILogger<ServiceBusTicketNotificationService> logger)
         {
-            _client = client;
+            _sender = sender;
             _opts = opts.Value;
             _logger = logger;
         }
 
         public async Task NotifyNeedsReviewAsync(TicketDocument ticket, string dashboardUrl, CancellationToken ct = default)
         {
-            if (string.IsNullOrWhiteSpace(_opts.NotifyQueueName))
-                throw new InvalidOperationException("Missing Notifications:NotifyQueueName");
 
             var baseUrl = string.IsNullOrWhiteSpace(dashboardUrl) ? _opts.DashboardBaseUrl : dashboardUrl;
             var link = $"{baseUrl.TrimEnd('/')}/Tickets/Detail?messageId={ticket.MessageId}";
@@ -51,7 +50,6 @@ namespace TicketTriageAI.Core.Services.Notifications
             };
 
             var json = JsonSerializer.Serialize(payload);
-            var sender = _client.CreateSender(_opts.NotifyQueueName);
 
             var msg = new ServiceBusMessage(json)
             {
@@ -61,7 +59,7 @@ namespace TicketTriageAI.Core.Services.Notifications
                 CorrelationId = ticket.CorrelationId
             };
 
-            await sender.SendMessageAsync(msg, ct);
+            await _sender.SendMessageAsync(msg, ct);
 
             _logger.LogInformation("Enqueued Teams notification. MessageId={MessageId} Queue={Queue}", ticket.MessageId, _opts.NotifyQueueName);
         }
