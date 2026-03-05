@@ -68,7 +68,7 @@ namespace TicketTriageAI.Core.Services.Processing.AI
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Classifier call failed. Falling back.");
-                return Fallback();
+                return TicketTriageResult.Fallback();
             }
 
             // Recupero testo (defensivo, perché l’SDK può esporre content in più modi a seconda versione)
@@ -77,7 +77,7 @@ namespace TicketTriageAI.Core.Services.Processing.AI
                 ?? completion?.Content?.FirstOrDefault()?.ToString()?.Trim();
 
             if (string.IsNullOrWhiteSpace(content))
-                return Fallback();
+                return TicketTriageResult.Fallback();
 
             try
             {
@@ -102,26 +102,25 @@ namespace TicketTriageAI.Core.Services.Processing.AI
                         .ToArray();
                 }
 
-                return new TicketTriageResult
-                {
-                    Category = NormalizeCategory(category),
-                    Severity = NormalizeSeverity(severity),
-                    Confidence = confidence,
-                    NeedsHumanReview = needsHumanReview,
-                    Summary = (summary ?? string.Empty).Trim(),
-                    Entities = entities
-                };
+                return TicketTriageResult.Create(
+                    category: NormalizeCategory(category),
+                    severity: NormalizeSeverity(severity),
+                    confidence: confidence,
+                    needsHumanReview: needsHumanReview,
+                    summary: (summary ?? string.Empty).Trim(),
+                    entities: entities
+                );
             }
             catch (JsonException ex)
             {
                 var safe = content.Length > 600 ? content.Substring(0, 600) : content;
                 _logger.LogWarning(ex, "Invalid JSON from classifier. Content(first600)={Content}", safe);
-                return Fallback();
+                return TicketTriageResult.Fallback();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Classifier parsing failed. Falling back.");
-                return Fallback();
+                return TicketTriageResult.Fallback();
             }
         }
 
@@ -129,16 +128,6 @@ namespace TicketTriageAI.Core.Services.Processing.AI
         new(Name: nameof(AzureOpenAITicketClassifier),
             Version: _opts.ClassifierVersion,
             Model: _opts.DeploymentName);
-        private static TicketTriageResult Fallback() => new TicketTriageResult
-        {
-            Category = "other",
-            Severity = "P3",
-            Confidence = 0.0,
-            NeedsHumanReview = true,
-            Summary = string.Empty,
-            Entities = Array.Empty<string>()
-        };
-
 
         private static string NormalizeCategory(string? value)
         {
