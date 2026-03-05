@@ -1,8 +1,12 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using Microsoft.Azure.Amqp.Framing;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using TicketTriageAI.Core.Configuration;
@@ -15,15 +19,18 @@ namespace TicketTriageAI.Core.Services.Processing
     {
         private readonly Container _container;
         private readonly ITicketDocumentFactory _docFactory;
+        private readonly ILogger<CosmosTicketStatusRepository> _logger;
 
         public CosmosTicketStatusRepository(
         CosmosClient client,
         IOptions<CosmosOptions> options,
-        ITicketDocumentFactory docFactory)
+        ITicketDocumentFactory docFactory,
+        ILogger<CosmosTicketStatusRepository> logger)
         {
             var opt = options.Value;
             _container = client.GetContainer(opt.DatabaseName, opt.ContainerName);
             _docFactory = docFactory;
+            _logger = logger;
         }
 
 
@@ -32,17 +39,17 @@ namespace TicketTriageAI.Core.Services.Processing
             if (ticket is null) throw new ArgumentNullException(nameof(ticket));
 
             var patch = new List<PatchOperation>
-            {
-                PatchOperation.Set("/messageId", ticket.MessageId),
-                PatchOperation.Set("/correlationId", ticket.CorrelationId),
-                PatchOperation.Set("/from", ticket.From),
-                PatchOperation.Set("/subject", ticket.Subject),
-                PatchOperation.Set("/body", ticket.Body),
-                PatchOperation.Set("/receivedAt", ticket.ReceivedAt),
-                PatchOperation.Set("/source", ticket.Source),
-                PatchOperation.Set("/status", (int)TicketStatus.Received),
-                PatchOperation.Set("/statusReason", (string?)null)
-            };
+    {
+        PatchOperation.Set("/messageId", ticket.MessageId),
+        PatchOperation.Set("/correlationId", ticket.CorrelationId),
+        PatchOperation.Set("/from", ticket.From),
+        PatchOperation.Set("/subject", ticket.Subject),
+        PatchOperation.Set("/body", ticket.Body),
+        PatchOperation.Set("/receivedAt", ticket.ReceivedAt),
+        PatchOperation.Set("/source", ticket.Source),
+        PatchOperation.Set("/status", (int)TicketStatus.Received),
+        PatchOperation.Set("/statusReason", (string?)null)
+    };
 
             try
             {
@@ -52,16 +59,17 @@ namespace TicketTriageAI.Core.Services.Processing
                     patchOperations: patch,
                     cancellationToken: ct);
             }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                var doc = _docFactory.CreateReceived(ticket);
+                _logger.LogWarning(ex,
+                    "PatchReceived: document not found, creating it. MessageId={MessageId}",
+                    ticket.MessageId);
 
-                await _container.CreateItemAsync(
-                    item: doc,
-                    partitionKey: new PartitionKey(ticket.MessageId),
-                    cancellationToken: ct);
+                var doc = _docFactory.CreateReceived(ticket);
+                await _container.CreateItemAsync(doc, new PartitionKey(doc.MessageId), cancellationToken: ct);
             }
         }
+
         public Task PatchProcessingAsync(string messageId, CancellationToken ct = default)
             => PatchStatusAsync(messageId, TicketStatus.Processing, reason: null, ct);
 
@@ -88,11 +96,24 @@ namespace TicketTriageAI.Core.Services.Processing
             ops.Add(PatchOperation.Set("/statusReason",
                 string.IsNullOrWhiteSpace(reason) ? null : reason));
 
-            await _container.PatchItemAsync<dynamic>(
-                id: messageId,
-                partitionKey: new PartitionKey(messageId),
-                patchOperations: ops,
-                cancellationToken: ct);
+            try
+            {
+                await _container.PatchItemAsync<dynamic>(
+                    id: messageId,
+                    partitionKey: new PartitionKey(messageId),
+                    patchOperations: ops,
+                    cancellationToken: ct);
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                _logger.LogError(ex,
+                    "PatchStatus failed: document not found. MessageId={MessageId} Status={Status} Reason={Reason}",
+                    messageId, status, reason);
+
+                throw new InvalidOperationException(
+                    $"TicketDocument not found for MessageId={messageId} while patching status {status}.",
+                    ex);
+            }
         }
 
         public async Task<bool> ExistsAsync(string messageId, CancellationToken ct = default)
