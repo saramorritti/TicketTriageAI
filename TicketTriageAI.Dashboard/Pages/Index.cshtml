@@ -1,10 +1,39 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
 }
+<section class="hero">
+    <div class="container hero-inner">
+        <h1 class="hero-title">Ticket Triage AI</h1>
+        <p class="hero-sub">
+            An AI-assisted ticket ingestion and triage system built on Azure Functions, Service Bus, Cosmos DB and Application Insights.
+            It classifies tickets into category/severity with confidence and routes "needs review" items to a notification queue.
+        </p>
+    </div>
+</section>
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container sections-grid" style="padding-top: 36px; padding-bottom: 36px;">
+    <div class="card card--hero" id="project">
+        <h2>Project</h2>
+        <p>
+            Browse incoming tickets, search by subject/from, filter by status, open details, and review AI triage output
+            (category, severity, confidence, needs-review flag).
+        </p>
+        <div class="card-actions">
+            <a class="btn btn-primary" href="/Tickets">Open Dashboard →</a>
+        </div>
+    </div>
+
+    <div class="card card--hero" id="docs">
+        <h2>Documentation</h2>
+        <p>
+            Local setup, configuration keys, sample payloads, troubleshooting, and demo scenarios.
+            Includes observability notes (custom App Insights events) and message correlation.
+        </p>
+        <div class="card-actions">
+            <a class="btn btn-primary" href="/Docs">Read Docs →</a>
+            <a class="btn" href="/Architecture">Architecture →</a>
+        </div>
+    </div>
 </div>
