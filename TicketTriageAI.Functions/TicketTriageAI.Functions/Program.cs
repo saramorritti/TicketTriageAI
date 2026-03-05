@@ -3,7 +3,9 @@ using FluentValidation;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Azure.Functions.Worker.Middleware;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using OpenAI;
 using OpenAI.Chat;
@@ -18,7 +20,7 @@ using TicketTriageAI.Core.Services.Processing;
 using TicketTriageAI.Core.Services.Processing.AI;
 using TicketTriageAI.Core.Services.Text;
 using TicketTriageAI.Core.Validators;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using TicketTriageAI.Functions.Middleware;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -135,5 +137,7 @@ builder.Services.AddScoped<ITicketNotificationService, ServiceBusTicketNotificat
 
 builder.Services.AddApplicationInsightsTelemetryWorkerService();
 builder.Services.ConfigureFunctionsApplicationInsights();
+
+builder.Services.AddSingleton<IFunctionsWorkerMiddleware, GlobalExceptionMiddleware>();
 
 builder.Build().Run();

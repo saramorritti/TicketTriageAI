@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Azure.Amqp.Framing;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OpenAI.Chat;
 using System.Globalization;
 using System.Text.Json;
@@ -12,11 +15,16 @@ namespace TicketTriageAI.Core.Services.Processing.AI
     {
         private readonly ChatClient _chat;
         private readonly AzureOpenAIClassifierOptions _opts;
+        private readonly ILogger<AzureOpenAITicketClassifier> _logger;
 
-        public AzureOpenAITicketClassifier(ChatClient chatClient, Microsoft.Extensions.Options.IOptions<AzureOpenAIClassifierOptions> opts)
+        public AzureOpenAITicketClassifier(
+            ChatClient chatClient,
+            IOptions<AzureOpenAIClassifierOptions> opts,
+            ILogger<AzureOpenAITicketClassifier> logger)
         {
             _chat = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
             _opts = opts.Value;
+            _logger = logger;
         }
 
         public async Task<TicketTriageResult> ClassifyAsync(
@@ -41,14 +49,27 @@ namespace TicketTriageAI.Core.Services.Processing.AI
                 MaxOutputTokenCount = _opts.MaxOutputTokenCount
             };
 
-            ChatCompletion completion = await _chat.CompleteChatAsync(
-                new ChatMessage[]
-                {
-                    new SystemChatMessage(systemPrompt),
-                    new UserChatMessage(userPrompt)
-                },
-                options,
-                cancellationToken);
+
+            var messages = new ChatMessage[]
+            {
+                new SystemChatMessage(systemPrompt),
+                new UserChatMessage(userPrompt)
+            };
+            
+            ChatCompletion completion;
+            try
+            {
+                completion = await _chat.CompleteChatAsync(messages, options, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Classifier call failed. Falling back.");
+                return Fallback();
+            }
 
             // Recupero testo (defensivo, perché l’SDK può esporre content in più modi a seconda versione)
             var content =
@@ -91,8 +112,15 @@ namespace TicketTriageAI.Core.Services.Processing.AI
                     Entities = entities
                 };
             }
-            catch
+            catch (JsonException ex)
             {
+                var safe = content.Length > 600 ? content.Substring(0, 600) : content;
+                _logger.LogWarning(ex, "Invalid JSON from classifier. Content(first600)={Content}", safe);
+                return Fallback();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Classifier parsing failed. Falling back.");
                 return Fallback();
             }
         }
