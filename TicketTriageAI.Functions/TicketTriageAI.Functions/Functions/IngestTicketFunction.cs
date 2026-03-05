@@ -34,17 +34,17 @@ public class IngestTicketFunction
 
     [Function("IngestTicket")]
     public async Task<IActionResult> RunAsync(
-    [HttpTrigger(AuthorizationLevel.Function, "post", Route = Routes.IngestTicketV1)] HttpRequest req)
+    [HttpTrigger(AuthorizationLevel.Function, "post", Route = Routes.IngestTicketV1)] HttpRequest req, CancellationToken ct)
     {
         var correlationId = GetOrCreateCorrelationId(req);
 
         using (_logger.BeginCorrelationScope(correlationId))
         {
-            var body = await new StreamReader(req.Body).ReadToEndAsync();
+            var body = await new StreamReader(req.Body).ReadToEndAsync(ct);
             if (string.IsNullOrWhiteSpace(body))
                 return BadRequest(ApiMessages.EmptyBody, correlationId);
 
-            var (request, validation) = await _ingestService.ParseAndValidateAsync(body);
+            var (request, validation) = await _ingestService.ParseAndValidateAsync(body, ct);
             if (request is null)
                 return BadRequest(ApiMessages.InvalidPayload, correlationId);
 
@@ -63,7 +63,8 @@ public class IngestTicketFunction
                 return BadRequest(ApiMessages.ValidationFailed, correlationId, errors);
             }
 
-            var published = await _pipeline.ExecuteAsync(request, correlationId);
+            var idemKey = req.Headers.TryGetValue("Idempotency-Key", out var v) ? v.ToString() : null;
+            var published = await _pipeline.ExecuteAsync(request, correlationId, idempotencyKey: idemKey, ct: ct);
 
             if (!published)
             {
@@ -71,7 +72,7 @@ public class IngestTicketFunction
                     "Duplicate ticket suppressed."
                     );
 
-                return Accepted(new
+                return AcceptedResult(new
                 {
                     message = "Duplicate suppressed",
                     correlationId,
@@ -82,7 +83,7 @@ public class IngestTicketFunction
                 "Ticket ingest accepted and enqueued"
                 );
 
-            return Accepted(new
+            return AcceptedResult(new
             {
                 message = "Ticket accepted for processing",
                 correlationId,
@@ -117,7 +118,7 @@ public class IngestTicketFunction
         });
     }
 
-    private static ObjectResult Accepted(object payload)
+    private static ObjectResult AcceptedResult(object payload)
     {
         return new ObjectResult(payload)
         {

@@ -19,7 +19,7 @@ namespace TicketTriageAI.Core.Services.Ingest
             _validator = validator;
         }
 
-        public async Task<(TicketIngestedRequest?, ValidationResult)> ParseAndValidateAsync(string body)
+        public async Task<(TicketIngestedRequest?, ValidationResult)> ParseAndValidateAsync(string body, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(body))
                 return (null, new ValidationResult());
@@ -38,7 +38,7 @@ namespace TicketTriageAI.Core.Services.Ingest
             if (request is null)
                 return (null, new ValidationResult());
 
-            var validation = await _validator.ValidateAsync(request);
+            var validation = await _validator.ValidateAsync(request, ct);
             return (request, validation);
         }
     }
