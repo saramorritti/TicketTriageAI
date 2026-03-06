@@ -30,13 +30,13 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore
-        run: dotnet restore ./TicketTriageAI.Functions/TicketTriageAI.Functions.csproj
+        run: dotnet restore ./TicketTriageAI.Functions/TicketTriageAI.Functions/TicketTriageAI.Functions.csproj
 
       - name: Build
-        run: dotnet build ./TicketTriageAI.Functions/TicketTriageAI.Functions.csproj --configuration Release --no-restore
+        run: dotnet build ./TicketTriageAI.Functions/TicketTriageAI.Functions/TicketTriageAI.Functions.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish ./TicketTriageAI.Functions/TicketTriageAI.Functions.csproj --configuration Release --no-build --output ./output
+        run: dotnet publish ./TicketTriageAI.Functions/TicketTriageAI.Functions/TicketTriageAI.Functions.csproj --configuration Release --no-build --output ./output
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -52,3 +52,4 @@ jobs:
           app-name: 'TicketTriageAI-Functions'
           slot-name: 'Production'
           package: './output'
+
