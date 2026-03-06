@@ -342,7 +342,7 @@ html {
 
 .hero-sub {
     max-width: 820px;
-    font-size: clamp(14px, 1.4vw, 16px);
+    font-size: clamp(13px, 1.3vw, 15px);
     color: rgba(0,0,0,0.78);
     margin-bottom: 22px;
     font-weight: 400;
