@@ -1,6 +1,8 @@
 using Microsoft.Azure.Cosmos;
 using TicketTriageAI.Core.Configuration;
+using TicketTriageAI.Dashboard.Options;
 using TicketTriageAI.Dashboard.Repositories;
+using TicketTriageAI.Dashboard.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,14 @@ builder.Services
     .Bind(builder.Configuration.GetSection("Cosmos"))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+
+builder.Services
+    .AddOptions<IngestApiOptions>()
+    .Bind(builder.Configuration.GetSection("IngestApi"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddHttpClient<ITicketIngestClient, TicketIngestClient>();
 
 // CosmosClient con env/user-secrets key "CosmosDbConnection"
 builder.Services.AddSingleton(_ =>
