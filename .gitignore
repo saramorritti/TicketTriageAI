@@ -416,3 +416,4 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+/TicketTriageAI.Dashboard/appsettings.Development.json
