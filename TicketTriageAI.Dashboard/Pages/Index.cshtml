@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Home";
 }
+
 <section class="hero">
     <div class="container hero-inner">
         <h1 class="hero-title">Ticket Triage AI</h1>
@@ -10,14 +11,15 @@
             An AI-assisted ticket ingestion and triage system built on Azure Functions, Service Bus, Cosmos DB and Application Insights.
             It classifies tickets into category/severity with confidence and routes "needs review" items to a notification queue.
         </p>
-
-        <div class="hero-diagram">
-            <img src="/assets/flowchart.png" alt="Ticket Triage AI Architecture Flow" class="architecture-img" />
+        <div class="text-center">
+            <img src="~/assets/flowchart4.png"
+                 class="architecture-img"
+                 alt="Ticket Triage AI architecture" />
         </div>
     </div>
 </section>
 
-<div class="container sections-grid" style="padding-top: 36px; padding-bottom: 36px;">
+<div class="container sections-grid" style="padding-top: 16px; padding-bottom: 20px;">
     <div class="card card--hero" id="project">
         <h2>Project</h2>
         <p>
@@ -28,7 +30,6 @@
             <a class="btn btn-primary" href="/Tickets">Open Dashboard →</a>
         </div>
     </div>
-
     <div class="card card--hero" id="docs">
         <h2>Documentation</h2>
         <p>

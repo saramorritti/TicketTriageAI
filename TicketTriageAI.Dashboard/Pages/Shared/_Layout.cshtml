@@ -9,31 +9,11 @@
     <link rel="stylesheet" href="~/TicketTriageAI.Dashboard.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header class="topbar">
-        <div class="container topbar-inner">
-            <a class="brand" href="/">
-                <span class="brand-mark"></span>
-                <span>Ticket Triage AI</span>
-            </a>
-
-            <nav class="nav">
-                <a href="/#project">Project</a>
-                <a href="/#docs">Documentation</a>
-                <a href="/#architecture">Architecture</a>
-                <a href="/Tickets">Tickets</a>
-            </nav>
-        </div>
-    </header>
+    
 
     <main>
         @RenderBody()
     </main>
-
-    <footer class="footer">
-        <div class="container" style="padding: 18px 0; border-top: var(--border); color: rgba(0,0,0,0.6);">
-            © 2026 Ticket Triage AI
-        </div>
-    </footer>
 
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
