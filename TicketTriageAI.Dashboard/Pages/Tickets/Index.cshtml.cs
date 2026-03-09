@@ -1,18 +1,38 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 using TicketTriageAI.Core.Models;
 using TicketTriageAI.Dashboard.Models;
+using TicketTriageAI.Dashboard.Options;
 using TicketTriageAI.Dashboard.Repositories;
+using TicketTriageAI.Dashboard.Services;
 
 namespace TicketTriageAI.Dashboard.Pages.Tickets
 {
     public sealed class IndexModel : PageModel
     {
         private readonly ITicketReadRepository _repo;
+        private readonly ITicketIngestClient _ingestClient;
+        private readonly IngestApiOptions _ingestOptions;
 
-        public IndexModel(ITicketReadRepository repo) => _repo = repo;
+        public IndexModel(
+            ITicketReadRepository repo,
+            ITicketIngestClient ingestClient,
+            IOptions<IngestApiOptions> ingestOptions)
+        {
+            _repo = repo;
+            _ingestClient = ingestClient;
+            _ingestOptions = ingestOptions.Value;
+        }
 
         public IReadOnlyList<TicketListItem> Items { get; private set; } = Array.Empty<TicketListItem>();
+
+        [BindProperty]
+        public CreateTicketInput Input { get; set; } = new()
+        {
+            ReceivedAt = DateTime.UtcNow,
+            Source = "email"
+        };
 
         public string? Q { get; set; }
         public TicketStatus? Status { get; set; }
@@ -21,12 +41,40 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
         public string? NextContinuationToken { get; private set; }
         public int PageSize { get; set; } = 25;
 
+        public IngestCallResult? CreateResult { get; private set; }
+        public TicketDocument? CreatedTicket { get; private set; }
+        public string? CreatedMessageId { get; private set; }
+
         public async Task OnGetAsync(string? q, TicketStatus? status, int pageSize = 25, int page = 1, string? continuationToken = null)
+        {
+            await LoadListAsync(q, status, pageSize, page, continuationToken);
+        }
+
+        public async Task<IActionResult> OnPostCreateAsync(string? q, TicketStatus? status, int pageSize = 25, int page = 1, string? continuationToken = null, CancellationToken ct = default)
+        {
+            await LoadListAsync(q, status, pageSize, page, continuationToken);
+
+            if (!ModelState.IsValid)
+                return Page();
+
+            var messageId = Guid.NewGuid().ToString("N");
+            CreatedMessageId = messageId;
+
+            CreateResult = await _ingestClient.CreateAsync(Input, messageId, ct);
+
+            if (CreateResult.IsSuccess)
+            {
+                CreatedTicket = await WaitForTicketAsync(messageId, ct);
+            }
+
+            return Page();
+        }
+
+        private async Task LoadListAsync(string? q, TicketStatus? status, int pageSize, int page, string? continuationToken)
         {
             Q = q;
             Status = status;
             ContinuationToken = continuationToken;
-
             Page = Math.Max(1, page);
             PageSize = Math.Clamp(pageSize, 1, 100);
 
@@ -43,5 +91,26 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
             NextContinuationToken = result.ContinuationToken;
         }
 
+        private async Task<TicketDocument?> WaitForTicketAsync(string messageId, CancellationToken ct)
+        {
+            for (int i = 0; i < _ingestOptions.PollAttempts; i++)
+            {
+                var ticket = await _repo.GetAsync(messageId, ct);
+
+                if (ticket is not null &&
+                    (ticket.Status == TicketStatus.Processed ||
+                     ticket.Status == TicketStatus.NeedsReview ||
+                     ticket.Status == TicketStatus.Failed ||
+                     ticket.Status == TicketStatus.Processing ||
+                     ticket.Status == TicketStatus.Received))
+                {
+                    return ticket;
+                }
+
+                await Task.Delay(_ingestOptions.PollDelayMilliseconds, ct);
+            }
+
+            return null;
+        }
     }
 }

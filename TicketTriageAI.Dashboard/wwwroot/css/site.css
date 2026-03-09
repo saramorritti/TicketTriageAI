@@ -383,3 +383,24 @@ a.link {
     padding: 16px 0;
     margin-top: 32px;
 }
+
+
+.accordion-item {
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    border: 1px solid #e5e7eb;
+}
+
+.accordion-button {
+    font-weight: 600;
+}
+
+.card {
+    border-radius: 14px;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
