@@ -45,14 +45,14 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
         public TicketDocument? CreatedTicket { get; private set; }
         public string? CreatedMessageId { get; private set; }
 
-        public async Task OnGetAsync(string? q, TicketStatus? status, int pageSize = 25, int page = 1, string? continuationToken = null)
+        public async Task OnGetAsync(string? q, TicketStatus? status, int pageSize = 25, int pageNumber = 1, string? continuationToken = null)
         {
-            await LoadListAsync(q, status, pageSize, page, continuationToken);
+            await LoadListAsync(q, status, pageSize, pageNumber, continuationToken);
         }
 
-        public async Task<IActionResult> OnPostCreateAsync(string? q, TicketStatus? status, int pageSize = 25, int page = 1, string? continuationToken = null, CancellationToken ct = default)
+        public async Task<IActionResult> OnPostCreateAsync(string? q, TicketStatus? status, int pageSize = 25, int pageNumber = 1, string? continuationToken = null, CancellationToken ct = default)
         {
-            await LoadListAsync(q, status, pageSize, page, continuationToken);
+            await LoadListAsync(q, status, pageSize, pageNumber, continuationToken);
 
             if (!ModelState.IsValid)
                 return Page();
@@ -70,12 +70,12 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
             return Page();
         }
 
-        private async Task LoadListAsync(string? q, TicketStatus? status, int pageSize, int page, string? continuationToken)
+        private async Task LoadListAsync(string? q, TicketStatus? status, int pageSize, int pageNumber, string? continuationToken)
         {
             Q = q;
             Status = status;
             ContinuationToken = continuationToken;
-            Page = Math.Max(1, page);
+            Page = Math.Max(1, pageNumber);
             PageSize = Math.Clamp(pageSize, 1, 100);
 
             var result = await _repo.SearchAsync(
@@ -100,9 +100,7 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
                 if (ticket is not null &&
                     (ticket.Status == TicketStatus.Processed ||
                      ticket.Status == TicketStatus.NeedsReview ||
-                     ticket.Status == TicketStatus.Failed ||
-                     ticket.Status == TicketStatus.Processing ||
-                     ticket.Status == TicketStatus.Received))
+                     ticket.Status == TicketStatus.Failed))
                 {
                     return ticket;
                 }
@@ -110,7 +108,7 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
                 await Task.Delay(_ingestOptions.PollDelayMilliseconds, ct);
             }
 
-            return null;
+            return await _repo.GetAsync(messageId, ct);
         }
     }
 }

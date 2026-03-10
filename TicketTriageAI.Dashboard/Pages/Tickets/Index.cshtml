@@ -2,20 +2,17 @@
 @model TicketTriageAI.Dashboard.Pages.Tickets.IndexModel
 @using TicketTriageAI.Core.Models
 
-<h1>Project</h1>
-<p>Submit a new ticket and explore all processed tickets.</p>
+<h1 class="mb-2">Project</h1>
+<p class="text-muted mb-4">Submit a new ticket and explore all processed tickets.</p>
 
-<div class="accordion" id="ticketsAccordion">
-
-    <!-- CREA TICKET -->
-    <div class="accordion-item">
-        <h2 class="accordion-header" id="headingCreate">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCreate" aria-expanded="true" aria-controls="collapseCreate">
-                Crea ticket
-            </button>
-        </h2>
-        <div id="collapseCreate" class="accordion-collapse collapse show" aria-labelledby="headingCreate" data-bs-parent="#ticketsAccordion">
-            <div class="accordion-body">
+<div class="row g-4 tickets-page">
+    <!-- COLONNA SINISTRA: CREA TICKET -->
+    <div class="col-12 col-xl-5">
+        <div class="card h-100 shadow-sm tickets-panel">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h4 mb-0">Crea ticket</h2>
+                </div>
 
                 <form method="post" asp-page-handler="Create">
                     <div class="mb-3">
@@ -32,7 +29,7 @@
 
                     <div class="mb-3">
                         <label asp-for="Input.Body" class="form-label"></label>
-                        <textarea asp-for="Input.Body" class="form-control" rows="6"></textarea>
+                        <textarea asp-for="Input.Body" class="form-control" rows="7"></textarea>
                         <span asp-validation-for="Input.Body" class="text-danger"></span>
                     </div>
 
@@ -55,30 +52,30 @@
 
                 @if (Model.CreateResult is not null)
                 {
-                    <hr />
+                    <hr class="my-4" />
 
-                    <h4>Risultato ingest</h4>
-                    <p><strong>Status HTTP:</strong> @Model.CreateResult.StatusCode</p>
-                    <p><strong>MessageId:</strong> @Model.CreatedMessageId</p>
+                    <h3 class="h5">Risultato ingest</h3>
+                    <p class="mb-1"><strong>Status HTTP:</strong> @Model.CreateResult.StatusCode</p>
+                    <p class="mb-3"><strong>MessageId:</strong> @Model.CreatedMessageId</p>
 
-                    <details>
+                    <details class="mb-3">
                         <summary>Vedi risposta raw</summary>
-                        <pre>@Model.CreateResult.ResponseBody</pre>
+                        <pre class="mt-2 p-3 bg-light rounded">@Model.CreateResult.ResponseBody</pre>
                     </details>
                 }
 
-                @if (Model.CreatedTicket is not null)
+                @if (Model.CreatedTicket is not null &&
+                                (Model.CreatedTicket.Status == TicketStatus.Processed ||
+                                Model.CreatedTicket.Status == TicketStatus.NeedsReview ||
+                                Model.CreatedTicket.Status == TicketStatus.Failed))
                 {
-                    <hr />
-
-                    <h4>Triage risultante</h4>
-
-                    <div class="card">
+                    <div class="card border-0 bg-light mt-3">
                         <div class="card-body">
-                            <h5 class="card-title">@Model.CreatedTicket.Subject</h5>
-                            <p class="card-text">@Model.CreatedTicket.Summary</p>
+                            <h3 class="h5 mb-3">Triage risultante</h3>
+                            <h4 class="h6">@Model.CreatedTicket.Subject</h4>
+                            <p class="text-muted">@Model.CreatedTicket.Summary</p>
 
-                            <ul>
+                            <ul class="mb-3 ps-3">
                                 <li><strong>Category:</strong> @Model.CreatedTicket.Category</li>
                                 <li><strong>Severity:</strong> @Model.CreatedTicket.Severity</li>
                                 <li><strong>Confidence:</strong> @Model.CreatedTicket.Confidence</li>
@@ -94,31 +91,29 @@
                 }
                 else if (Model.CreateResult is not null && Model.CreateResult.IsSuccess)
                 {
-                    <div class="alert alert-warning mt-3">
+                    <div class="alert alert-warning mt-4 mb-0">
                         Ticket inviato correttamente, ma il risultato AI non è ancora disponibile.
                         Probabilmente è ancora in coda o in processing.
                     </div>
                 }
-
             </div>
         </div>
     </div>
 
-    <!-- VISUALIZZA TUTTI -->
-    <div class="accordion-item">
-        <h2 class="accordion-header" id="headingList">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseList" aria-expanded="false" aria-controls="collapseList">
-                Visualizza tutti i ticket
-            </button>
-        </h2>
-        <div id="collapseList" class="accordion-collapse collapse" aria-labelledby="headingList" data-bs-parent="#ticketsAccordion">
-            <div class="accordion-body">
+    <!-- COLONNA DESTRA: LISTA TICKET -->
+    <div class="col-12 col-xl-7">
+        <div class="card h-100 shadow-sm tickets-panel">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h4 mb-0">Visualizza tutti i ticket</h2>
+                </div>
 
-                <form method="get" class="row g-2 mb-3">
-                    <div class="col-md-4">
-                        <input type="text" name="q" value="@Model.Q" placeholder="search subject/from" class="form-control" />
+                <form method="get" class="row g-2 mb-4">
+                    <div class="col-12 col-md-4">
+                        <input type="text" name="q" value="@Model.Q" placeholder="Search subject/from" class="form-control" />
                     </div>
-                    <div class="col-md-3">
+
+                    <div class="col-12 col-md-3">
                         <select name="status" class="form-select">
                             <option value="">-- status --</option>
                             @foreach (var s in Enum.GetValues<TicketStatus>())
@@ -127,7 +122,8 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-2">
+
+                    <div class="col-12 col-md-2">
                         <select name="pageSize" class="form-select">
                             @{
                                 var sizes = new[] { 10, 25, 50, 100 };
@@ -138,53 +134,58 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3">
+
+                    <div class="col-12 col-md-3 d-grid">
                         <button type="submit" class="btn btn-secondary">Search</button>
                     </div>
                 </form>
 
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Received</th>
-                            <th>From</th>
-                            <th>Subject</th>
-                            <th>Cat</th>
-                            <th>Sev</th>
-                            <th>Conf</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var t in Model.Items)
-                        {
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead>
                             <tr>
-                                <td>@t.ReceivedAt</td>
-                                <td>@t.From</td>
-                                <td>
-                                    <a href="/Tickets/Detail?messageId=@t.MessageId">@t.Subject</a>
-                                </td>
-                                <td>@t.Category</td>
-                                <td>@t.Severity</td>
-                                <td>@t.Confidence</td>
-                                <td>@t.Status (@t.StatusReason)</td>
+                                <th>Received</th>
+                                <th>From</th>
+                                <th>Subject</th>
+                                <th>Cat</th>
+                                <th>Sev</th>
+                                <th>Conf</th>
+                                <th>Status</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in Model.Items)
+                            {
+                                <tr>
+                                    <td>@t.ReceivedAt</td>
+                                    <td>@t.From</td>
+                                    <td>
+                                        <a href="/Tickets/Detail?messageId=@t.MessageId">@t.Subject</a>
+                                    </td>
+                                    <td>@t.Category</td>
+                                    <td>@t.Severity</td>
+                                    <td>@t.Confidence</td>
+                                    <td>@t.Status (@t.StatusReason)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
 
                 @if (!string.IsNullOrWhiteSpace(Model.NextContinuationToken))
                 {
-                    <a asp-page="./Index"
-                       asp-route-q="@Model.Q"
-                       asp-route-status="@Model.Status"
-                       asp-route-pageSize="@Model.PageSize"
-                       asp-route-page="@(Model.Page + 1)"
-                       asp-route-continuationToken="@Model.NextContinuationToken">
-                        Next →
-                    </a>
+                    <div class="mt-4">
+                        <a class="btn btn-outline-secondary"
+                           asp-page="./Index"
+                           asp-route-q="@Model.Q"
+                           asp-route-status="@Model.Status"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-page="@(Model.Page + 1)"
+                           asp-route-continuationToken="@Model.NextContinuationToken">
+                            Next →
+                        </a>
+                    </div>
                 }
-
             </div>
         </div>
     </div>
