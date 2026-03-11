@@ -1,195 +1,432 @@
 ﻿@page
 @model TicketTriageAI.Dashboard.Pages.Tickets.IndexModel
 @using TicketTriageAI.Core.Models
+<div class="tickets-shell">
+    <h1 class="mb-2">Project</h1>
+    <p class="text-muted mb-4">Submit a new ticket and explore all processed tickets.</p>
 
-<h1 class="mb-2">Project</h1>
-<p class="text-muted mb-4">Submit a new ticket and explore all processed tickets.</p>
+    <div class="row g-4 tickets-page">
 
-<div class="row g-4 tickets-page">
-    <!-- COLONNA SINISTRA: CREA TICKET -->
-    <div class="col-12 col-xl-5">
-        <div class="card h-100 shadow-sm tickets-panel">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h4 mb-0">Crea ticket</h2>
+        <!-- LEFT COLUMN: CREATE / DEMO TICKET -->
+        <div class="col-12 col-xl-5">
+            <div class="card h-100 shadow-sm tickets-panel">
+                <div class="card-body p-4">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Try the ticket flow</h2>
+                    </div>
+
+                    <p class="text-muted mb-4">
+                        Test the ingestion flow either by creating a ticket manually or by using a predefined demo example.
+                    </p>
+
+                    <div class="accordion" id="ticketDemoAccordion">
+
+                        <!-- ACCORDION 1: CREATE FROM SCRATCH -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingCreate">
+                                <button class="accordion-button collapsed"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#collapseCreate"
+                                        aria-expanded="false"
+                                        aria-controls="collapseCreate">
+                                    Create a ticket from scratch
+                                </button>
+                            </h2>
+
+                            <div id="collapseCreate"
+                                 class="accordion-collapse collapse"
+                                 aria-labelledby="headingCreate"
+                                 data-bs-parent="#ticketDemoAccordion">
+
+                                <div class="accordion-body">
+
+                                    <form method="post" asp-page-handler="Create">
+
+                                        <div class="mb-3">
+                                            <label asp-for="Input.From" class="form-label"></label>
+                                            <input asp-for="Input.From" class="form-control" />
+                                            <span asp-validation-for="Input.From" class="text-danger"></span>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="Input.Subject" class="form-label"></label>
+                                            <input asp-for="Input.Subject" class="form-control" />
+                                            <span asp-validation-for="Input.Subject" class="text-danger"></span>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="Input.Body" class="form-label"></label>
+                                            <textarea asp-for="Input.Body" class="form-control" rows="7"></textarea>
+                                            <span asp-validation-for="Input.Body" class="text-danger"></span>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label asp-for="Input.ReceivedAt" class="form-label"></label>
+                                                <input asp-for="Input.ReceivedAt"
+                                                       class="form-control"
+                                                       type="datetime-local" />
+                                                <span asp-validation-for="Input.ReceivedAt" class="text-danger"></span>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label asp-for="Input.Source" class="form-label"></label>
+                                                <input asp-for="Input.Source" class="form-control" />
+                                                <span asp-validation-for="Input.Source" class="text-danger"></span>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary">
+                                            Submit ticket
+                                        </button>
+
+                                    </form>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACCORDION 2: SAMPLE TICKETS -->
+                        <div class="accordion-item">
+
+                            <h2 class="accordion-header" id="headingSamples">
+                                <button class="accordion-button collapsed"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#collapseSamples"
+                                        aria-expanded="false"
+                                        aria-controls="collapseSamples">
+                                    Use a sample ticket
+                                </button>
+                            </h2>
+
+                            <div id="collapseSamples"
+                                 class="accordion-collapse collapse"
+                                 aria-labelledby="headingSamples"
+                                 data-bs-parent="#ticketDemoAccordion">
+
+                                <div class="accordion-body">
+
+                                    <p class="text-muted small mb-3">
+                                        Quick demo tickets designed to generate different AI outcomes.
+                                    </p>
+
+                                    <div class="row g-3">
+
+                                        @foreach (var sample in Model.SampleTickets)
+                                        {
+                                            <div class="col-12">
+
+                                                <div class="border rounded-3 p-3 bg-light-subtle">
+
+                                                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+
+                                                        <div class="flex-grow-1">
+
+                                                            <h4 class="h6 mb-1">
+                                                                @sample.Title
+                                                            </h4>
+
+                                                            <p class="text-muted small mb-2">
+                                                                @sample.Description
+                                                            </p>
+
+                                                            <div class="small">
+
+                                                                <div>
+                                                                    <strong>Expected category:</strong>
+                                                                    @sample.ExpectedCategory
+                                                                </div>
+
+                                                                <div>
+                                                                    <strong>Expected severity:</strong>
+                                                                    @sample.ExpectedSeverity
+                                                                </div>
+
+                                                                <div>
+                                                                    <strong>Expected outcome:</strong>
+                                                                    @sample.ExpectedOutcome
+                                                                </div>
+
+                                                            </div>
+
+                                                        </div>
+
+                                                        <div class="d-flex flex-column gap-2 sample-actions">                                              
+                                                            <form method="post" asp-page-handler="CreateSample">
+                                                                <input type="hidden"
+                                                                       name="sampleKey"
+                                                                       value="@sample.Key" />
+
+                                                                <button type="submit"
+                                                                        class="btn btn-outline-primary btn-sm w-100">
+                                                                    Send immediately
+                                                                </button>
+                                                            </form>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+                                        }
+
+                                    </div>
+
+                                    <p class="text-muted small mt-3 mb-0">
+                                        Note: category, severity and needsHumanReview are determined by the AI pipeline.
+                                        These examples are written to produce different outcomes quickly during the demo.
+                                    </p>
+
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    @if (Model.CreateResult is not null)
+                    {
+                        <hr class="my-4" />
+
+                        <h3 class="h5">Ingestion result</h3>
+
+                        <p class="mb-1">
+                            <strong>HTTP Status:</strong> @Model.CreateResult.StatusCode
+                        </p>
+
+                        <p class="mb-3">
+                            <strong>MessageId:</strong> @Model.CreatedMessageId
+                        </p>
+
+                        <details class="mb-3">
+                            <summary>Show raw response</summary>
+                            <pre class="mt-2 p-3 bg-light rounded">@Model.CreateResult.ResponseBody</pre>
+                        </details>
+                    }
+
+                    @if (Model.CreatedTicket is not null &&
+                                        (Model.CreatedTicket.Status == TicketStatus.Processed ||
+                                        Model.CreatedTicket.Status == TicketStatus.NeedsReview ||
+                                        Model.CreatedTicket.Status == TicketStatus.Failed))
+                    {
+
+                        <div class="card border-0 bg-light mt-3">
+
+                            <div class="card-body">
+
+                                <h3 class="h5 mb-3">
+                                    Resulting AI triage
+                                </h3>
+
+                                <h4 class="h6">
+                                    @Model.CreatedTicket.Subject
+                                </h4>
+
+                                <p class="text-muted">
+                                    @Model.CreatedTicket.Summary
+                                </p>
+
+                                <ul class="mb-3 ps-3">
+
+                                    <li>
+                                        <strong>Category:</strong>
+                                        @Model.CreatedTicket.Category
+                                    </li>
+
+                                    <li>
+                                        <strong>Severity:</strong>
+                                        @Model.CreatedTicket.Severity
+                                    </li>
+
+                                    <li>
+                                        <strong>Confidence:</strong>
+                                        @Model.CreatedTicket.Confidence
+                                    </li>
+
+                                    <li>
+                                        <strong>Status:</strong>
+                                        @Model.CreatedTicket.Status
+                                        (@Model.CreatedTicket.StatusReason)
+                                    </li>
+
+                                    <li>
+                                        <strong>Needs human review:</strong>
+                                        @Model.CreatedTicket.NeedsHumanReview
+                                    </li>
+
+                                </ul>
+
+                                <a class="btn btn-outline-primary"
+                                   href="/Tickets/Detail?messageId=@Model.CreatedTicket.MessageId">
+                                    Open full details
+                                </a>
+
+                            </div>
+
+                        </div>
+                    }
+
+                    else if (Model.CreateResult is not null && Model.CreateResult.IsSuccess)
+                    {
+                        <div class="alert alert-warning mt-4 mb-0">
+                            Ticket submitted successfully, but the AI result is not available yet.
+                            The message is probably still queued or being processed.
+                        </div>
+                    }
+
                 </div>
-
-                <form method="post" asp-page-handler="Create">
-                    <div class="mb-3">
-                        <label asp-for="Input.From" class="form-label"></label>
-                        <input asp-for="Input.From" class="form-control" />
-                        <span asp-validation-for="Input.From" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Input.Subject" class="form-label"></label>
-                        <input asp-for="Input.Subject" class="form-control" />
-                        <span asp-validation-for="Input.Subject" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Input.Body" class="form-label"></label>
-                        <textarea asp-for="Input.Body" class="form-control" rows="7"></textarea>
-                        <span asp-validation-for="Input.Body" class="text-danger"></span>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="Input.ReceivedAt" class="form-label"></label>
-                            <input asp-for="Input.ReceivedAt" class="form-control" type="datetime-local" />
-                            <span asp-validation-for="Input.ReceivedAt" class="text-danger"></span>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="Input.Source" class="form-label"></label>
-                            <input asp-for="Input.Source" class="form-control" />
-                            <span asp-validation-for="Input.Source" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Invia ticket</button>
-                </form>
-
-                @if (Model.CreateResult is not null)
-                {
-                    <hr class="my-4" />
-
-                    <h3 class="h5">Risultato ingest</h3>
-                    <p class="mb-1"><strong>Status HTTP:</strong> @Model.CreateResult.StatusCode</p>
-                    <p class="mb-3"><strong>MessageId:</strong> @Model.CreatedMessageId</p>
-
-                    <details class="mb-3">
-                        <summary>Vedi risposta raw</summary>
-                        <pre class="mt-2 p-3 bg-light rounded">@Model.CreateResult.ResponseBody</pre>
-                    </details>
-                }
-
-                @if (Model.CreatedTicket is not null &&
-                                (Model.CreatedTicket.Status == TicketStatus.Processed ||
-                                Model.CreatedTicket.Status == TicketStatus.NeedsReview ||
-                                Model.CreatedTicket.Status == TicketStatus.Failed))
-                {
-                    <div class="card border-0 bg-light mt-3">
-                        <div class="card-body">
-                            <h3 class="h5 mb-3">Triage risultante</h3>
-                            <h4 class="h6">@Model.CreatedTicket.Subject</h4>
-                            <p class="text-muted">@Model.CreatedTicket.Summary</p>
-
-                            <ul class="mb-3 ps-3">
-                                <li><strong>Category:</strong> @Model.CreatedTicket.Category</li>
-                                <li><strong>Severity:</strong> @Model.CreatedTicket.Severity</li>
-                                <li><strong>Confidence:</strong> @Model.CreatedTicket.Confidence</li>
-                                <li><strong>Status:</strong> @Model.CreatedTicket.Status (@Model.CreatedTicket.StatusReason)</li>
-                                <li><strong>Needs review:</strong> @Model.CreatedTicket.NeedsHumanReview</li>
-                            </ul>
-
-                            <a class="btn btn-outline-primary" href="/Tickets/Detail?messageId=@Model.CreatedTicket.MessageId">
-                                Apri dettaglio completo
-                            </a>
-                        </div>
-                    </div>
-                }
-                else if (Model.CreateResult is not null && Model.CreateResult.IsSuccess)
-                {
-                    <div class="alert alert-warning mt-4 mb-0">
-                        Ticket inviato correttamente, ma il risultato AI non è ancora disponibile.
-                        Probabilmente è ancora in coda o in processing.
-                    </div>
-                }
             </div>
         </div>
-    </div>
 
-    <!-- COLONNA DESTRA: LISTA TICKET -->
-    <div class="col-12 col-xl-7">
-        <div class="card h-100 shadow-sm tickets-panel">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h4 mb-0">Visualizza tutti i ticket</h2>
-                </div>
+        <!-- RIGHT COLUMN: TICKET LIST -->
+        <div class="col-12 col-xl-7">
 
-                <form method="get" class="row g-2 mb-4">
-                    <div class="col-12 col-md-4">
-                        <input type="text" name="q" value="@Model.Q" placeholder="Search subject/from" class="form-control" />
+            <div class="card h-100 shadow-sm tickets-panel">
+
+                <div class="card-body p-4">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Browse all tickets</h2>
                     </div>
 
-                    <div class="col-12 col-md-3">
-                        <select name="status" class="form-select">
-                            <option value="">-- status --</option>
-                            @foreach (var s in Enum.GetValues<TicketStatus>())
-                            {
-                                <option value="@s" selected="@(Model.Status == s)">@s</option>
-                            }
-                        </select>
-                    </div>
+                    <form method="get" class="row g-2 mb-4">
 
-                    <div class="col-12 col-md-2">
-                        <select name="pageSize" class="form-select">
-                            @{
-                                var sizes = new[] { 10, 25, 50, 100 };
-                            }
-                            @foreach (var s in sizes)
-                            {
-                                <option value="@s" selected="@(Model.PageSize == s)">@s</option>
-                            }
-                        </select>
-                    </div>
+                        <div class="col-12 col-md-4">
+                            <input type="text"
+                                   name="q"
+                                   value="@Model.Q"
+                                   placeholder="Search by subject or sender"
+                                   class="form-control" />
+                        </div>
 
-                    <div class="col-12 col-md-3 d-grid">
-                        <button type="submit" class="btn btn-secondary">Search</button>
-                    </div>
-                </form>
+                        <div class="col-12 col-md-3">
 
-                <div class="table-responsive">
-                    <table class="table table-striped align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Received</th>
-                                <th>From</th>
-                                <th>Subject</th>
-                                <th>Cat</th>
-                                <th>Sev</th>
-                                <th>Conf</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var t in Model.Items)
-                            {
+                            <select name="status" class="form-select">
+
+                                <option value="">-- status --</option>
+
+                                @foreach (var s in Enum.GetValues<TicketStatus>())
+                                {
+                                    <option value="@s" selected="@(Model.Status == s)">
+                                        @s
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-12 col-md-2">
+
+                            <select name="pageSize" class="form-select">
+
+                                @{
+                                    var sizes = new[] { 10, 25, 50, 100 };
+                                }
+
+                                @foreach (var s in sizes)
+                                {
+                                    <option value="@s" selected="@(Model.PageSize == s)">
+                                        @s
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-12 col-md-3 d-grid">
+                            <button type="submit" class="btn btn-secondary">
+                                Search
+                            </button>
+                        </div>
+
+                    </form>
+
+                    <div class="table-responsive">
+
+                        <table class="table table-striped align-middle mb-0">
+
+                            <thead>
                                 <tr>
-                                    <td>@t.ReceivedAt</td>
-                                    <td>@t.From</td>
-                                    <td>
-                                        <a href="/Tickets/Detail?messageId=@t.MessageId">@t.Subject</a>
-                                    </td>
-                                    <td>@t.Category</td>
-                                    <td>@t.Severity</td>
-                                    <td>@t.Confidence</td>
-                                    <td>@t.Status (@t.StatusReason)</td>
+                                    <th>Received</th>
+                                    <th>From</th>
+                                    <th>Subject</th>
+                                    <th>Category</th>
+                                    <th>Severity</th>
+                                    <th>Confidence</th>
+                                    <th>Status</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+
+                            <tbody>
+
+                                @foreach (var t in Model.Items)
+                                {
+                                    <tr>
+
+                                        <td>@t.ReceivedAt</td>
+
+                                        <td>@t.From</td>
+
+                                        <td>
+                                            <a href="/Tickets/Detail?messageId=@t.MessageId">
+                                                @t.Subject
+                                            </a>
+                                        </td>
+
+                                        <td>@t.Category</td>
+
+                                        <td>@t.Severity</td>
+
+                                        <td>@t.Confidence</td>
+
+                                        <td>
+                                            @t.Status (@t.StatusReason)
+                                        </td>
+
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.NextContinuationToken))
+                    {
+                        <div class="mt-4">
+
+                            <a class="btn btn-outline-secondary"
+                               asp-page="./Index"
+                               asp-route-q="@Model.Q"
+                               asp-route-status="@Model.Status"
+                               asp-route-pageSize="@Model.PageSize"
+                               asp-route-page="@(Model.Page + 1)"
+                               asp-route-continuationToken="@Model.NextContinuationToken">
+
+                                Next →
+
+                            </a>
+
+                        </div>
+                    }
+
                 </div>
 
-                @if (!string.IsNullOrWhiteSpace(Model.NextContinuationToken))
-                {
-                    <div class="mt-4">
-                        <a class="btn btn-outline-secondary"
-                           asp-page="./Index"
-                           asp-route-q="@Model.Q"
-                           asp-route-status="@Model.Status"
-                           asp-route-pageSize="@Model.PageSize"
-                           asp-route-page="@(Model.Page + 1)"
-                           asp-route-continuationToken="@Model.NextContinuationToken">
-                            Next →
-                        </a>
-                    </div>
-                }
             </div>
+
         </div>
+
     </div>
 </div>
+
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

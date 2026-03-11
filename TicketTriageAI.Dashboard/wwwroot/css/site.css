@@ -404,3 +404,126 @@ pre {
     white-space: pre-wrap;
     word-break: break-word;
 }
+
+/* Accordion */
+
+.accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.accordion-item {
+    border: 2px solid var(--border-gray) !important;
+    border-radius: 24px !important;
+    overflow: hidden;
+    background: var(--white);
+    transition: border-color 0.25s ease;
+}
+
+    .accordion-item:hover {
+        border-color: var(--pink) !important;
+    }
+
+.accordion-header {
+    margin: 0;
+    border-radius: 24px !important;
+}
+
+.accordion-button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 96px;
+    padding: 28px 30px;
+    background: var(--white) !important;
+    color: var(--black);
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.2;
+    border: 0 !important;
+    border-radius: 24px !important;
+    box-shadow: none !important;
+}
+
+    .accordion-button:hover {
+        background: var(--white) !important;
+    }
+
+    .accordion-button:focus {
+        border: 0 !important;
+        box-shadow: none !important;
+        outline: none;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: var(--light-gray) !important;
+        color: var(--black);
+        border-radius: 24px 24px 0 0 !important;
+    }
+
+    .accordion-button::after {
+        transform: scale(1.15);
+    }
+
+.accordion-collapse {
+    border: 0 !important;
+}
+
+.accordion-body {
+    background: var(--white);
+    padding: 28px 30px 30px;
+}
+
+.accordion-item:has(.accordion-button:not(.collapsed)) {
+    border-color: var(--pink) !important;
+}
+
+/* Bootstrap fix for first/last item */
+.accordion-item:first-of-type,
+.accordion-item:last-of-type {
+    border-radius: 24px !important;
+}
+
+    .accordion-item:first-of-type .accordion-button,
+    .accordion-item:last-of-type .accordion-button {
+        border-radius: 24px !important;
+    }
+
+        .accordion-item:first-of-type .accordion-button:not(.collapsed),
+        .accordion-item:last-of-type .accordion-button:not(.collapsed) {
+            border-radius: 24px 24px 0 0 !important;
+        }
+
+
+.accordion-button {
+    background: var(--white) !important;
+}
+
+.accordion-item:hover .accordion-button {
+    background: var(--light-gray) !important;
+}
+
+.tickets-shell {
+    max-width: 1900px;
+    margin: 0 auto;
+    padding: 40px 32px 56px;
+}
+
+@media (max-width: 992px) {
+    .tickets-shell {
+        padding: 28px 20px 40px;
+    }
+}
+
+@media (max-width: 576px) {
+    .tickets-shell {
+        padding: 20px 16px 32px;
+    }
+}
+
+.tickets-shell > p {
+    font-size: 17px;
+    line-height: 1.6;
+    max-width: 700px;
+}
