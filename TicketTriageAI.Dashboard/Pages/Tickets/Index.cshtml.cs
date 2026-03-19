@@ -190,24 +190,23 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
                 new()
                 {
                     Key = "billing-p3",
-                    Title = "Billing issue - duplicate charge",
+                    Title = "Billing issue - invoice clarification",
                     ExpectedCategory = "billing",
                     ExpectedSeverity = "P3",
                     ExpectedOutcome = "Processed",
-                    Description = "Problema amministrativo non bloccante, utile per mostrare un caso standard.",
+                    Description = "Caso amministrativo semplice, non bloccante.",
                     Payload = new CreateTicketInput
                     {
                         From = "maria.rossi@contoso-demo.com",
-                        Subject = "Duplicate charge on March invoice",
+                        Subject = "Clarification needed on invoice total",
                         Body = """
-                               Hello,
-                               I noticed that my company card was charged twice for invoice INV-2026-0310.
-                               The first charge appears correct, but a second identical charge was posted a few minutes later.
-                               The service is still active and this is not blocking our operations, but we need clarification and a refund.
-                               Customer: Contoso Demo
-                               Invoice: INV-2026-0310
-                               Amount: 248 EUR
-                               """,
+                                Hello,
+                                we would like clarification on the total amount shown on invoice INV-2026-0310.
+                                We are not reporting a service outage and our operations are working normally.
+                                Please confirm whether taxes and support fees were included correctly.
+                                Customer: Contoso Demo
+                                Invoice: INV-2026-0310
+                                """,
                         ReceivedAt = DateTime.UtcNow,
                         Source = "email"
                     }
@@ -215,24 +214,45 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
                 new()
                 {
                     Key = "support-p2",
-                    Title = "Support request - account access problem",
+                    Title = "Support request - profile update help",
                     ExpectedCategory = "support",
                     ExpectedSeverity = "P2",
                     ExpectedOutcome = "Processed",
-                    Description = "Caso intermedio, impatta l’utente ma non l’intera piattaforma.",
+                    Description = "Richiesta di supporto chiara, senza blocco critico.",
                     Payload = new CreateTicketInput
                     {
                         From = "luca.bianchi@fabrikam-demo.com",
-                        Subject = "Unable to access admin area after password reset",
+                        Subject = "Help needed updating company profile settings",
                         Body = """
-                               Hi team,
-                               after resetting my password I can log into the main portal, but I still cannot access the admin area.
-                               I receive a message saying I do not have sufficient permissions.
-                               This blocks me from updating customer orders today.
-                               User: luca.bianchi@fabrikam-demo.com
-                               Department: Operations
-                               Started this morning around 08:30 CET
-                               """,
+                                Hi team,
+                                I need help updating the company profile settings in the admin portal.
+                                The platform is accessible and working correctly, but I am not sure where to change the notification preferences.
+                                No urgent issue is involved.
+                                User: luca.bianchi@fabrikam-demo.com
+                                Department: Operations
+                                """,
+                        ReceivedAt = DateTime.UtcNow,
+                        Source = "email"
+                    }
+                },
+                new()
+                {
+                    Key = "technical-p3",
+                    Title = "Technical issue - minor UI bug on dashboard",
+                    ExpectedCategory = "technical",
+                    ExpectedSeverity = "P3",
+                    ExpectedOutcome = "Processed",
+                    Description = "Bug tecnico lieve, non bloccante.",
+                    Payload = new CreateTicketInput
+                    {
+                        From = "qa@northwind-demo.com",
+                        Subject = "Dashboard filter label overlaps on mobile",
+                        Body = """
+                                Hello,
+                                on mobile devices the dashboard filter label slightly overlaps with the search box.
+                                Core features are working correctly and no users are blocked.
+                                Please review this minor UI issue when possible.
+                                """,
                         ReceivedAt = DateTime.UtcNow,
                         Source = "email"
                     }
@@ -244,42 +264,41 @@ namespace TicketTriageAI.Dashboard.Pages.Tickets
                     ExpectedCategory = "technical",
                     ExpectedSeverity = "P1",
                     ExpectedOutcome = "NeedsReview",
-                    Description = "Incidente critico, pensato per far scattare review umana.",
+                    Description = "Incidente critico, deve andare in review umana.",
                     Payload = new CreateTicketInput
                     {
                         From = "oncall@northwind-demo.com",
                         Subject = "URGENT - Production API unavailable for all customers",
                         Body = """
-                               Critical incident.
-                               Since 09:05 CET our production API returns HTTP 500 on all checkout requests.
-                               Multiple customers reported that orders cannot be completed.
-                               This is affecting the whole production environment and revenue is impacted right now.
-                               Error spike visible on payment and order endpoints.
-                               Please escalate immediately.
-                               """,
+                                Critical incident.
+                                Since 09:05 CET our production API returns HTTP 500 on all checkout requests.
+                                Multiple customers reported that orders cannot be completed.
+                                This is affecting the whole production environment and revenue is impacted right now.
+                                Error spike visible on payment and order endpoints.
+                                Please escalate immediately.
+                                """,
                         ReceivedAt = DateTime.UtcNow,
                         Source = "email"
                     }
                 },
                 new()
                 {
-                    Key = "other-review",
-                    Title = "Ambiguous case - suspicious email and possible security concern",
-                    ExpectedCategory = "other / support",
-                    ExpectedSeverity = "P2",
-                    ExpectedOutcome = "NeedsReview",
-                    Description = "Caso volutamente ambiguo per mostrare bassa confidence o revisione manuale.",
+                    Key = "support-p3",
+                    Title = "Support request - export assistance",
+                    ExpectedCategory = "support",
+                    ExpectedSeverity = "P3",
+                    ExpectedOutcome = "Processed",
+                    Description = "Richiesta semplice e chiara.",
                     Payload = new CreateTicketInput
                     {
                         From = "helpdesk@adatum-demo.com",
-                        Subject = "Possible phishing email received by finance team",
+                        Subject = "How to export monthly report",
                         Body = """
-                               Hello,
-                               our finance team received a suspicious email asking to change bank details for a supplier payment.
-                               We are not sure whether this should be handled as a technical issue, a support request, or something else.
-                               No systems are currently down, but the request looks risky and we prefer a manual review before proceeding.
-                               Please advise on next steps.
-                               """,
+                                Hello,
+                                we need guidance on how to export the monthly report in CSV format.
+                                The application is working correctly and this is just a usage question.
+                                Please share the correct steps.
+                                """,
                         ReceivedAt = DateTime.UtcNow,
                         Source = "email"
                     }
