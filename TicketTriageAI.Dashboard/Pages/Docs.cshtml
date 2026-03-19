@@ -1,0 +1,88 @@
+﻿@page
+@model DocsModel
+@{
+    ViewData["Title"] = "Documentation";
+}
+
+<div class="container" style="max-width: 1000px; padding-top: 30px; padding-bottom: 40px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Documentation</h1>
+
+        <a class="btn btn-secondary" href="@Url.Content("~/docs/documentation.pdf")" target="_blank">
+            Download PDF
+        </a>
+    </div>
+
+    <div class="card p-4 mb-4">
+        <h2>Project Overview</h2>
+        <p>
+            Ticket Triage AI is a cloud-based application that automates the classification and prioritization
+            of support tickets using AI. The system processes incoming tickets through an event-driven pipeline,
+            where each request is analyzed and enriched with structured metadata such as category, severity,
+            and confidence score.
+        </p>
+    </div>
+
+    <div class="card p-4 mb-4">
+        <h2>Key Features</h2>
+        <ul>
+            <li>AI-powered ticket classification (category, severity, confidence score)</li>
+            <li>Event-driven processing pipeline using Azure Service Bus</li>
+            <li>Asynchronous and scalable architecture</li>
+            <li>Persistent storage with Azure Cosmos DB</li>
+            <li>Web dashboard for ticket submission and visualization</li>
+            <li>Monitoring and logging with Application Insights</li>
+        </ul>
+    </div>
+
+    <div class="card p-4 mb-4 text-center">
+        <img src="~/assets/flowchart4.png" class="img-fluid" alt="Ticket Triage AI architecture" />
+    </div>
+
+    <div class="card p-4 mb-4">
+        <h2>Data Flow</h2>
+        <ul>
+            <li>User submits a ticket from the dashboard</li>
+            <li>The request is validated by the Ingest API</li>
+            <li>The ticket is sent to Azure Service Bus</li>
+            <li>A processor function consumes the message</li>
+            <li>The ticket is classified using Azure OpenAI</li>
+            <li>The result is stored in Cosmos DB</li>
+            <li>If the confidence score is low or the ticket requires attention, a message is sent to a review queue</li>
+            <li>A Logic App processes the review request and sends a notification to Microsoft Teams</li>
+        </ul>
+    </div>
+
+    <div class="card p-4 mb-4">
+        <h2>Design Choices</h2>
+
+        <h5>Event-driven architecture</h5>
+        <p>Decouples ingestion, processing, and notification workflows, improving scalability and flexibility.</p>
+
+        <h5>Serverless functions</h5>
+        <p>Enable automatic scaling and reduce infrastructure management.</p>
+
+        <h5>Service Bus</h5>
+        <p>Provides reliable messaging, buffering, and supports multiple processing stages, including human-in-the-loop review.</p>
+
+        <h5>AI integration</h5>
+        <p>Automates classification while allowing fallback to human review when confidence is low.</p>
+
+        <h5>Logic App for notifications</h5>
+        <p>Separates business logic from communication workflows and enables easy integration with external systems like Microsoft Teams.</p>
+    </div>
+
+    <div class="card p-4">
+        <h2>Implementation Notes</h2>
+        <ul>
+            <li>Dependency Injection</li>
+            <li>Factory pattern</li>
+            <li>Validation layer</li>
+            <li>Global exception middleware</li>
+            <li>Correlation IDs</li>
+            <li>Human-in-the-loop review</li>
+            <li>Dead-letter handling</li>
+        </ul>
+    </div>
+</div>

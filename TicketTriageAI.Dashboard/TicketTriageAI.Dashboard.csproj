@@ -15,4 +15,15 @@
     <ProjectReference Include="..\TicketTriageAI.Functions\TicketTriageAI.Core\TicketTriageAI.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="wwwroot\docs\documentation.md" />
+    <None Include="wwwroot\docs\flowchart4.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\docs\documentation.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -3,75 +3,162 @@
 
 @if (Model.Ticket is null)
 {
-    <p>Ticket not found.</p>
+    <div class="ticket-detail-page">
+        <div class="ticket-shell">
+            <div class="ticket-card">
+                <p>Ticket not found.</p>
+                <p><a href="/Tickets">← Back to list</a></p>
+            </div>
+        </div>
+    </div>
     return;
 }
 
 @{
     var t = Model.Ticket;
+
+    var statusClass = t.NeedsHumanReview ? "status-review" : "status-ok";
+    var severityClass = (t.Severity ?? "").ToUpper() switch
+    {
+        "P1" => "sev-p1",
+        "P2" => "sev-p2",
+        "P3" => "sev-p3",
+        _ => "sev-p4"
+    };
+
+    var confidencePercent = $"{Math.Round(t.Confidence * 100)}%";
 }
 
-<h1>@t.Subject</h1>
+<div class="ticket-detail-page">
+    <div class="ticket-shell">
 
-<p style="margin-top:6px;">
-    <a href="/Tickets">← Back to list</a>
-</p>
+        <div class="ticket-topbar">
+            <a class="back-link" href="/Tickets">← Back to list</a>
+        </div>
 
-<hr />
+        <section class="ticket-hero">
+            <div class="ticket-hero-main">
+                <h1 class="ticket-title">@t.Subject</h1>
 
-<h3>Summary</h3>
-<p style="padding:10px; border:1px solid #ddd; border-radius:6px;">
-    @(!string.IsNullOrWhiteSpace(t.Summary) ? t.Summary : "(no summary)")
-</p>
+                <div class="ticket-meta-badges">
+                    <span class="pill pill-dark">@(string.IsNullOrWhiteSpace(t.Category) ? "Unclassified" : t.Category)</span>
+                    <span class="pill @severityClass">@(string.IsNullOrWhiteSpace(t.Severity) ? "N/A" : t.Severity)</span>
+                    <span class="pill pill-light">Confidence @confidencePercent</span>
+                    <span class="pill @statusClass">@(t.NeedsHumanReview ? "Needs Review" : "Processed")</span>
+                </div>
+            </div>
+        </section>
 
-@if (t.Entities is not null && t.Entities.Any())
-{
-    <h3>Entities</h3>
-    <div style="margin-bottom:10px;">
-        @foreach (var e in t.Entities)
-        {
-            <span style="display:inline-block; padding:4px 8px; margin:4px; border:1px solid #ccc; border-radius:999px;">
-                @e
-            </span>
-        }
+        <div class="ticket-grid">
+            <div class="ticket-main-col">
+
+                <section class="ticket-card">
+                    <div class="section-head">
+                        <h2>Summary</h2>
+                    </div>
+                    <div class="summary-box">
+                        @(!string.IsNullOrWhiteSpace(t.Summary) ? t.Summary : "(no summary)")
+                    </div>
+                </section>
+
+                @if (t.Entities is not null && t.Entities.Any())
+                {
+                    <section class="ticket-card">
+                        <div class="section-head">
+                            <h2>Entities</h2>
+                        </div>
+
+                        <div class="entity-list">
+                            @foreach (var e in t.Entities)
+                            {
+                                <span class="entity-pill">@e</span>
+                            }
+                        </div>
+                    </section>
+                }
+
+                <section class="ticket-card">
+                    <div class="section-head">
+                        <h2>Body</h2>
+                    </div>
+                    <div class="content-box">
+                        <pre>@t.Body</pre>
+                    </div>
+                </section>
+
+                <section class="ticket-card">
+                    <div class="section-head">
+                        <h2>Raw message</h2>
+                    </div>
+
+                    <details class="details-block">
+                        <summary>Show raw payload</summary>
+                        <div class="content-box">
+                            <pre>@t.RawMessage</pre>
+                        </div>
+                    </details>
+                </section>
+            </div>
+
+            <aside class="ticket-side-col">
+                <section class="ticket-card sticky-card">
+                    <div class="section-head">
+                        <h2>Classification</h2>
+                    </div>
+
+                    <dl class="info-list">
+                        <div>
+                            <dt>Category</dt>
+                            <dd>@t.Category</dd>
+                        </div>
+                        <div>
+                            <dt>Severity</dt>
+                            <dd>@t.Severity</dd>
+                        </div>
+                        <div>
+                            <dt>Confidence</dt>
+                            <dd>@t.Confidence</dd>
+                        </div>
+                        <div>
+                            <dt>Needs Human Review</dt>
+                            <dd>@t.NeedsHumanReview</dd>
+                        </div>
+                        <div>
+                            <dt>Status</dt>
+                            <dd>@t.Status (@t.StatusReason)</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="ticket-card">
+                    <div class="section-head">
+                        <h2>Audit</h2>
+                    </div>
+
+                    <dl class="info-list">
+                        <div>
+                            <dt>Message ID</dt>
+                            <dd>@t.MessageId</dd>
+                        </div>
+                        <div>
+                            <dt>Correlation ID</dt>
+                            <dd>@t.CorrelationId</dd>
+                        </div>
+                        <div>
+                            <dt>Received At</dt>
+                            <dd>@t.ReceivedAt</dd>
+                        </div>
+                        <div>
+                            <dt>Processed At UTC</dt>
+                            <dd>@t.ProcessedAtUtc</dd>
+                        </div>
+                        <div>
+                            <dt>Classifier</dt>
+                            <dd>@t.ClassifierName v@t.ClassifierVersion</dd>
+                        </div>
+                    </dl>
+                </section>
+            </aside>
+        </div>
     </div>
-}
-
-<h3>Classification</h3>
-<ul>
-    <li><b>Category:</b> @t.Category</li>
-    <li><b>Severity:</b> @t.Severity</li>
-    <li><b>Confidence:</b> @t.Confidence</li>
-    <li><b>NeedsHumanReview:</b> @t.NeedsHumanReview</li>
-    <li><b>Status:</b> @t.Status (@t.StatusReason)</li>
-</ul>
-
-<h3>Audit</h3>
-<ul>
-    <li><b>MessageId:</b> @t.MessageId</li>
-    <li><b>CorrelationId:</b> @t.CorrelationId</li>
-    <li><b>ReceivedAt:</b> @t.ReceivedAt</li>
-    <li><b>ProcessedAtUtc:</b> @t.ProcessedAtUtc</li>
-    <li><b>Classifier:</b> @t.ClassifierName v@t.ClassifierVersion</li>
-</ul>
-<h3>Clean body</h3>
-@if (!string.IsNullOrWhiteSpace(t.CleanBody))
-{
-    <details>
-        <summary>Show cleaned text</summary>
-        <pre style="white-space:pre-wrap; padding:10px; border:1px solid #eee; border-radius:6px;">@t.CleanBody</pre>
-    </details>
-}
-else
-{
-    <p>(no cleaned body)</p>
-}
-
-<h3>Body</h3>
-<pre style="white-space:pre-wrap; padding:10px; border:1px solid #eee; border-radius:6px;">@t.Body</pre>
-
-<h3>Raw message</h3>
-<details>
-    <summary>Show raw payload</summary>
-    <pre style="white-space:pre-wrap; padding:10px; border:1px solid #eee; border-radius:6px;">@t.RawMessage</pre>
-</details>
+</div>
